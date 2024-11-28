@@ -1,0 +1,12 @@
+inputs:
+  data: datasets/LHC22o_pass7/Train300243/Tree_LHC22o_K0s_Lambda.root
+  mc: datasets/LHC24g5/Train300601/Tree_LHC24g5_K0s_Lambda.root
+  tree_name: O2pidv0s
+
+n_workers: 10
+
+cutset: configs/cutset_k0s.yml
+
+outputs:
+  dir: datasets/skimmed
+  suffix: _k0s
