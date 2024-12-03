@@ -1,0 +1,48 @@
+histofile: "/home/mdicosta/hf_pid_studies/analysis/selections_pp.root"
+
+trees:
+-   treefile: '/data/shared/hf_pid_studies/LHC22o_pass7/Train300244/Tree_LHC22o_pass7_Casc.root'
+    datasetname: "casc_pp_data"
+    foldername: 'O2pidcascades'
+    masscol: "fMassOmega"
+    histocfg: [100,1.5,1.8]
+    selections: "(fMassXi < 1.30 or fMassXi > 1.35) and fCascCosPA > 0.9999 and fDCAV0daughters < 0.05 and fDCAv0topv > 0.02 and fDCAv0topv < 1"
+    outfile: '../seldatasets/Tree_LHC22o_pass7_Casc_sel_ppdata.parquet'
+
+-   treefile: '/data/shared/hf_pid_studies/LHC22o_pass7/Train300243/Tree_LHC22o_K0s_Lambda.root'
+    subsets:
+    -   datasetname: "k0_pp_data"
+        foldername: 'O2pidv0s'
+        masscol: "fMassK0"
+        histocfg: [100,0.4,0.6]
+        selections: "fCpa > 0.9999 and (fMassLambda < 1.114 or fMassLambda > 1.117) and (fMassAntiLambda < 1.114 or fMassAntiLambda > 1.117) and fQtArm >  0.12"
+        outfile: '../seldatasets/Tree_LHC22o_K0s_sel_ppdata.parquet'
+    -   datasetname: "lambda_pp_data"
+        foldername: 'O2pidv0s'
+        masscol: "fMassLambda"
+        histocfg: [100,1.0,1.3]
+        selections: "((fMassLambda > 1.0 and fMassLambda < 1.3) or (fMassAntiLambda > 1.0 and fMassAntiLambda < 1.3)) and fCpa > 0.9999 and (fMassK0 < 0.470 or fMassK0 > 0.525) and fQtArm < 0.12 and fRadius > 0.2"
+        outfile: '../seldatasets/Tree_LHC22o_Lambda_sel_ppdata.parquet'
+
+-   treefile: '/home/mdicosta/hf_pid_studies/datasets/LHC24g5/Train301355/Tree_LHC24g5_Casc.root'
+    datasetname: "casc_pp_mc"
+    foldername: 'O2pidcascades'
+    masscol: "fMassOmega"
+    histocfg: [100,1.5,1.8]
+    selections: "fCandFlag == 3 or fCandFlag == -3"
+    outfile: '../seldatasets/Tree_LHC24g5_Casc_sel_ppmc.parquet'
+
+-   treefile: '/home/mdicosta/hf_pid_studies/datasets/LHC24g5/Train300601/Tree_LHC24g5_K0s_Lambda.root'
+    subsets:
+    -   datasetname: "k0_pp_mc"
+        foldername: 'O2pidv0s'
+        masscol: "fMassK0"
+        histocfg: [100,0.4,0.6]
+        selections: "fCandFlag == 1"
+        outfile: '../seldatasets/Tree_LHC24g5_K0s_sel_ppmc.parquet'
+    -   datasetname: "lambda_pp_mc"
+        foldername: 'O2pidv0s'
+        masscol: "fMassLambda"
+        histocfg: [100,1.0,1.3]
+        selections: "fCandFlag == 2 or fCandFlag == -2"
+        outfile: '../seldatasets/Tree_LHC24g5_Lambda_sel_ppmc.parquet'
