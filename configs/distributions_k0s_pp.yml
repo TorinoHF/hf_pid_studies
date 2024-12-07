@@ -13,4 +13,4 @@ mass_range: [0.45, 0.55]
 pt_bins: [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.5, 2.0, 4.0]
 
 output:
-  dir: distributions/k0s
+  dir: distributions/k0s/pp
