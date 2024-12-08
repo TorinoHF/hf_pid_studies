@@ -1,6 +1,6 @@
 datasets
 seldatasets
-
+distributions/distributions
 *.root
 
 # Byte-compiled / optimized / DLL files
