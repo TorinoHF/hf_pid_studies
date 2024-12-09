@@ -1,0 +1,41 @@
+inputs:
+  data: /home/mdicosta/hf_pid_studies/seldatasets/pbpb/data/LHC23zzh_pass4_small_k0s.parquet
+  mc: /home/mdicosta/hf_pid_studies/seldatasets/pbpb/mc/LHC24g2_medium_k0s.parquet
+
+mother_mass_var_name: fMassK0
+mother_pt_var_name: fPt
+variables_to_plot: [fNSigmaTpcPosPi, fNSigmaTpcNegPi, fNSigmaTofPosPi, fNSigmaTofNegPi]
+dau_names: [pos_pi, neg_pi]
+dau_pt_var_names: [fPtPos, fPtNeg] # relative to the variables_to_plot
+mass_range: [0.45, 0.55]
+mean: 0.5
+sigma: 0.01
+pt_bins: [1., 3] #., 5.] #, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.5, 2.0, 4.0]
+cent_bins: [
+            [20, 30], 
+            [30, 40], 
+            [40, 50], 
+            [50, 60], 
+            [60, 70], 
+            [70, 80], 
+            # [50, 100], 
+            # [40, 50], 
+            # [50, 60] 
+           ]
+occ_bins: [ 
+            [0, 10000], 
+            [0, 20000], 
+            [0, 30000], 
+            [0, 40000], 
+            [0, 50000], 
+            [0, 60000], 
+            [0, 70000], 
+            [0, 80000], 
+            [0, 90000],  
+            [0, 100000],  
+            # [2000, 4000], 
+            # [4000, 99999] 
+          ]
+
+output:
+  dir: distributions/k0s/pbpb
