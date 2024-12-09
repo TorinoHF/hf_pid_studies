@@ -57,10 +57,11 @@ def fit_mass(df, suffix, pt_min, pt_max, cfg, sub_dir):
 
 def draw_pid_distributions(dfs, cfg, labels, weights, pt_min, pt_max, sub_dir):
     for var in cfg['variables_to_plot']:
+        plot_var = var.replace("Tpc", "Tof") if "Tpc" in var else var.replace("Tof", "Tpc")
         fig, ax = plt.subplots(1, 1, figsize=(12, 10))
         for df, label, weight in zip(dfs, labels, weights):
-            df[var].hist(bins=100, label=label, alpha=0.5, density=True, range=(-5,5))
-        ax.set_xlabel(var)
+            df[var].hist(bins=100, label=label, weights=weight, alpha=0.5, density=True, range=(-5,5))
+        ax.set_xlabel(plot_var)
         ax.set_ylabel('Entries')
         ax.legend()
         output_dir = os.path.join(cfg['output']['dir'], f'{sub_dir}/{pt_min*10:.0f}_{pt_max*10:.0f}')
@@ -69,7 +70,7 @@ def draw_pid_distributions(dfs, cfg, labels, weights, pt_min, pt_max, sub_dir):
         fig.savefig(
             os.path.join(
                 output_dir,
-                f'{var}.png'
+                f'{plot_var}.png'
             ),
             dpi=300, bbox_inches="tight"
         )
@@ -214,27 +215,15 @@ def draw_distributions(cfg_file_name):
 
                 fitter = fit_mass(df_data_pt, 'data', pt_min, pt_max, cfg, out_daudir)
 
-                # print('PRE EFF EVAL')
-                # eff_df_row = [*eff_df_sel_row] + [pd.Interval(pt_min, pt_max, closed='left')]
-                # eff_df_mc_row = [*eff_df_sel_row] + [pd.Interval(pt_min, pt_max, closed='left')]
                 eff_df_row = [*eff_df_sel_row] + [f"[{pt_min}, {pt_max})"]
                 eff_df_mc_row = [*eff_df_sel_row] + [f"[{pt_min}, {pt_max})"]
                 for var in cfg["variables_to_plot"]:
                     effs, effs_uncs = get_efficiency([df_data_pt, df_mc_pt], var)
                     eff_df_row = eff_df_row + [effs[0]] + [effs_uncs[0]]
                     eff_df_mc_row = eff_df_mc_row + [effs[1]] + [effs_uncs[1]]
-
-                # print('AFTER EFF EVAL')
-                # print(f"eff_df_row: {eff_df_row}")
-                # print(f"eff_df_mc_row: {eff_df_mc_row}")
-                # effs, effs_uncs = get_efficiency([df_data_pt, df_mc_pt], cfg["variables_to_plot"])
-                # eff_df_row = [*eff_df_sel_row, pd.Interval(pt_min, pt_max, closed='left'), *effs[0], *effs_uncs[0]]
                 dau_df.loc[len(dau_df)] = eff_df_row
-                # eff_df_mc_row = [*eff_df_sel_row, pd.Interval(pt_min, pt_max, closed='left'), *effs[1], *effs_uncs[1]]
                 dau_df_mc.loc[len(dau_df_mc)] = eff_df_mc_row
-                # print(f"eff_df_row: {eff_df_row}")
-                # print(f"eff_df_mc_row: {eff_df_mc_row}")
-                # print('END')
+
                 
                 if cfg.get('draw_corr'):
                     draw_correlation_pt(df_data_pt, 'data', pt_min, pt_max, cfg, out_daudir)
@@ -246,13 +235,8 @@ def draw_distributions(cfg_file_name):
             # draw_efficiencies([data_df, mc_df], cfg, ['data', 'mc'], pt_bins, out_daudir)
     
     for dau, eff_df, eff_df_mc in zip(cfg['dau_names'], eff_dfs, eff_dfs_mc):
-        # print('\n\n\n')
-        # print(eff_df)
-        # print('\n')
-        # print(eff_df_mc)
-        eff_df.to_parquet(f"{cfg["output"]["dir"]}/{dau}_eff_df.parquet") #, engine='fastparquet')
-        eff_df_mc.to_parquet(f"{cfg["output"]["dir"]}/{dau}_eff_df_mc.parquet") #, engine='fastparquet')
-        # print('\n\n\n')
+        eff_df.to_parquet(f"{cfg["output"]["dir"]}/{dau}_eff_df.parquet")
+        eff_df_mc.to_parquet(f"{cfg["output"]["dir"]}/{dau}_eff_df_mc.parquet")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Draw distributions')

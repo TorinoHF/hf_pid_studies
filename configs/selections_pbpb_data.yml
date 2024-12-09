@@ -3,32 +3,28 @@ histofile: "/home/mdicosta/hf_pid_studies/seldatasets/pbpb/data/selections_pbpb.
 trees:
 ##### Omega data
 -   treefile: '/data/shared/hf_pid_studies_pbpb/casc/Data/Train306756/LHC23zzh_pass4_small.parquet'
-    # datasetname: "casc_pbpb_data"
     masscol: "fMassOmega"
     histocfg: [100,1.5,1.8]
     selections: "(fMassOmega > 1.65 and fMassOmega < 1.70) and (fMassXi < 1.30 or fMassXi > 1.35) and fCascCosPa > 0.99999 and fDcaV0Daughters < 0.01 and fDcaV0ToPv > 0.02 and fDcaV0ToPv < 1"
     outfile: '../seldatasets/pbpb/data/LHC23zzh_pass4_small_casc.parquet'
 
-# ##### Lambda data
-# -   treefile: '/data/shared/hf_pid_studies_pbpb/v0s/Data/Train306573/LHC23zzh_pass4_small_v0s.parquet'
-#     # datasetname: "casc_pbpb_data"
-#     masscol: "fMassLambda"
-#     histocfg: [100,1.0,1.3]
-#     selections: "fCpa > 0.999 and (fMassK0 < 0.470 or fMassK0 > 0.525) and fQtArm < 0.12 and fRadius > 0.5 and ((fMassLambda > 1.05 and fMassLambda < 1.130) and (fMassAntiLambda < 1.05 or fMassAntiLambda > 1.130))"
-#     outfile: '../seldatasets/pbpb/data/LHC23zzh_pass4_small_lambda.parquet'
+##### Lambda data
+-   treefile: '/data/shared/hf_pid_studies_pbpb/v0s/Data/Train306573/LHC23zzh_pass4_small_v0s.parquet'
+    masscol: "fMassLambda"
+    histocfg: [100,1.0,1.3]
+    selections: "fCpa > 0.999 and (fMassK0 < 0.470 or fMassK0 > 0.525) and fQtArm < 0.12 and fRadius > 0.5 and fRadius < 2.3 and ((fMassLambda > 1.05 and fMassLambda < 1.130) and (fMassAntiLambda < 1.05 or fMassAntiLambda > 1.130))"
+    outfile: '../seldatasets/pbpb/data/LHC23zzh_pass4_small_lambda.parquet'
 
-# ##### AntiLambda data
-# -   treefile: '/data/shared/hf_pid_studies_pbpb/v0s/Data/Train306573/LHC23zzh_pass4_small_v0s.parquet'
-#     # datasetname: "casc_pbpb_data"
-#     masscol: "fMassAntiLambda"
-#     histocfg: [100,1.0,1.3]
-#     selections: "fCpa > 0.999 and (fMassK0 < 0.470 or fMassK0 > 0.525) and fQtArm < 0.12 and fRadius > 0.5 and ((fMassLambda < 1.05 or fMassLambda > 1.130) and (fMassAntiLambda > 1.05 and fMassAntiLambda < 1.130))"
-#     outfile: '../seldatasets/pbpb/data/LHC23zzh_pass4_small_antilambda.parquet'
+##### AntiLambda data
+-   treefile: '/data/shared/hf_pid_studies_pbpb/v0s/Data/Train306573/LHC23zzh_pass4_small_v0s.parquet'
+    masscol: "fMassAntiLambda"
+    histocfg: [100,1.0,1.3]
+    selections: "fCpa > 0.999 and (fMassK0 < 0.470 or fMassK0 > 0.525) and fQtArm < 0.12 and fRadius > 0.5 and fRadius < 2.3 and ((fMassLambda < 1.05 or fMassLambda > 1.130) and (fMassAntiLambda > 1.05 and fMassAntiLambda < 1.130))"
+    outfile: '../seldatasets/pbpb/data/LHC23zzh_pass4_small_antilambda.parquet'
 
-# ##### K0s data
-# -   treefile: '/data/shared/hf_pid_studies_pbpb/v0s/Data/Train306573/LHC23zzh_pass4_small_v0s.parquet'
-#     # datasetname: "casc_pbpb_data"
-#     masscol: "fMassK0"
-#     histocfg: [100,0.4,0.6]
-#     selections: "fCpa > 0.9999 and fMassK0 > 0.470 and fMassK0 < 0.525 and (fMassLambda < 1.114 or fMassLambda > 1.117) and (fMassAntiLambda < 1.114 or fMassAntiLambda > 1.117) and fQtArm >  0.12"
-#     outfile: '../seldatasets/pbpb/data/LHC23zzh_pass4_small_k0s.parquet'
+##### K0s data
+-   treefile: '/data/shared/hf_pid_studies_pbpb/v0s/Data/Train306573/LHC23zzh_pass4_small_v0s.parquet'
+    masscol: "fMassK0"
+    histocfg: [100,0.4,0.6]
+    selections: "fCpa > 0.9999 and fMassK0 > 0.470 and fMassK0 < 0.525 and (fMassLambda < 1.114 or fMassLambda > 1.117) and fRadius < 2.3 and (fMassAntiLambda < 1.114 or fMassAntiLambda > 1.117) and fQtArm >  0.12"
+    outfile: '../seldatasets/pbpb/data/LHC23zzh_pass4_small_k0s.parquet'
