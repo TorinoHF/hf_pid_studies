@@ -19,7 +19,7 @@ def fit_mass(df, suffix, pt_min, pt_max, cfg, sub_dir):
     # Create the data handler
     data_handler = DataHandler(df, cfg["mother_mass_var_name"])
     sgn_func = ["doublecb"]
-    bkg_func = ["chebpol1"]
+    bkg_func = ["nobkg"]
     fitter = F2MassFitter(data_handler, sgn_func, bkg_func, verbosity=0)
     fitter.set_signal_initpar(0, "mu", cfg["fit_config"]["mean"])
     fitter.set_signal_initpar(0, "sigma", cfg["fit_config"]["sigma"])
@@ -28,7 +28,7 @@ def fit_mass(df, suffix, pt_min, pt_max, cfg, sub_dir):
         fitter.set_signal_initpar(0, "alphar", cfg["fit_config"]["alphar"])
         fitter.set_signal_initpar(0, "nl", cfg["fit_config"]["nl"])
         fitter.set_signal_initpar(0, "nr", cfg["fit_config"]["nr"])
-    fitter.set_background_initpar(0, "c1", -0.001)
+    #fitter.set_background_initpar(0, "c1", -0.001)
 
 
     # Fit the data
@@ -48,7 +48,7 @@ def fit_mass(df, suffix, pt_min, pt_max, cfg, sub_dir):
 
     fig, _ = fitter.plot_mass_fit(
         style="ATLAS",
-        show_extra_info = fitter.get_background()[1] != 0,
+        show_extra_info = bkg_func[0] != "nobkg" and fitter.get_background()[1] != 0,
         figsize=(8, 8), extra_info_loc=loc,
         axis_title=ax_title
     )
@@ -196,7 +196,7 @@ def run_pt_bin(pt_min, pt_max, cfg, out_daudir, dau_axis_pt, selection, data_df,
     if cfg.get('draw_corr'):
         draw_correlation_pt(df_data_pt, 'data', pt_min, pt_max, cfg, out_daudir)
         draw_correlation_pt(df_mc_pt, 'mc', pt_min, pt_max, cfg, out_daudir)
-    if not np.isclose(fitter.get_background()[0], 0, atol=1):
+    if fitter.get_name_background_pdf()[0] != "nobkg" and not np.isclose(fitter.get_background()[0], 0, atol=1):
         draw_pid_distributions([df_data_pt, df_mc_pt], cfg, ['data', 'mc'], [fitter.get_sweights()['signal'], None], pt_min, pt_max, out_daudir)
     else:
         draw_pid_distributions([df_data_pt, df_mc_pt], cfg, ['data', 'mc'], [None, None], pt_min, pt_max, out_daudir)

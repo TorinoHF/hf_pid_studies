@@ -2,18 +2,29 @@ inputs:
   data: /home/mdicosta/hf_pid_studies/datasets/skimmed/skimmed_LHC22o__k0s.parquet
   mc: /home/mdicosta/hf_pid_studies/datasets/skimmed/skimmed_LHC24g5__k0s.parquet
 
-fit:
-  signal_data:
-
 mother_mass_var_name: fMassK0
 mother_pt_var_name: fPt
 variables_to_plot: [fNSigmaTpcPosPi, fNSigmaTpcNegPi, fNSigmaTofPosPi, fNSigmaTofNegPi]
 dau_names: [pos_pi, neg_pi]
-dau_pt_var_names: [fPtPos, fPtNeg] #, fPtPos, fPtNeg] # relative to the variables_to_plot
+dau_pt_var_names: [fPtPos, fPtNeg] # relative to the variables_to_plot
 mass_range: [0.45, 0.55]
-mean: 0.5
-sigma: 0.01
-pt_bins: [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.5, 2.0, 4.0]
+fit_config:
+  mean: 0.5
+  sigma: 0.01
+  nl: 10
+  nr: 10
+  alphal: 1.
+  alphar: 1.
+pt_bins: [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 1.0, 1.5]
+occ_bins: [ 
+            [0, 5000],
+            [0, 6000],
+            [0, 7000],
+            [0, 8000],
+            [0, 9000],
+            [0, 10000],
+            [0, 100000],
+          ]
 
 output:
   dir: distributions/k0s/pp
