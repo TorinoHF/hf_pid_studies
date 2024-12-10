@@ -1,9 +1,11 @@
 import argparse
 import os
+os.environ["CUDA_VISIBLE_DEVICES"] = ""  # pylint: disable=wrong-import-position
 import pandas as pd
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
+from concurrent.futures import ProcessPoolExecutor
 import itertools
 from flarefly.data_handler import DataHandler
 from flarefly.fitter import F2MassFitter
@@ -16,10 +18,18 @@ ROOT.gROOT.SetBatch(True)
 def fit_mass(df, suffix, pt_min, pt_max, cfg, sub_dir):
     # Create the data handler
     data_handler = DataHandler(df, cfg["mother_mass_var_name"])
-    fitter = F2MassFitter(data_handler, ["doublecb"], ["expo"])
-    fitter.set_signal_initpar(0, "mu", cfg["mean"])
-    fitter.set_signal_initpar(0, "sigma", cfg["sigma"])
-    fitter.set_background_initpar(0, "lam", -0.1)
+    sgn_func = ["doublecb"]
+    bkg_func = ["chebpol1"]
+    fitter = F2MassFitter(data_handler, sgn_func, bkg_func, verbosity=0)
+    fitter.set_signal_initpar(0, "mu", cfg["fit_config"]["mean"])
+    fitter.set_signal_initpar(0, "sigma", cfg["fit_config"]["sigma"])
+    if sgn_func[0] == "doublecb":
+        fitter.set_signal_initpar(0, "alphal", cfg["fit_config"]["alphal"])
+        fitter.set_signal_initpar(0, "alphar", cfg["fit_config"]["alphar"])
+        fitter.set_signal_initpar(0, "nl", cfg["fit_config"]["nl"])
+        fitter.set_signal_initpar(0, "nr", cfg["fit_config"]["nr"])
+    fitter.set_background_initpar(0, "c1", -0.001)
+
 
     # Fit the data
     fitter.mass_zfit()
@@ -83,21 +93,16 @@ def get_efficiency(dfs, var):
         effs_unc.append([])
         for nsigma in [3, 2, 1]:
             # print(f'NSIGMA {nsigma}')
-            if "Tpc" not in var:
+            if "Tpc" not in var: # TPC
                 n_sel = len(df.query(f'abs({var}) < {nsigma}'))
-            else:
-                n_sel = len(df.query(f'(abs({var}) < {nsigma} or {var}==-999)'))
+            else: # TOF
+                n_sel = len(df.query(f'abs({var}) < {nsigma} or {var}==-999'))
             n_total = len(df)
             eff = n_sel / n_total if n_total > 0 else 0
             eff_unc = np.sqrt(eff * (1 - eff) / n_total) if n_total > 0 else 0
             effs[-1].append(eff)
             effs_unc[-1].append(eff_unc)
-    
-    # for eff_var in effs:
-    #     print(eff_var)
-    # print(f"effs.size(): {len(effs)}")
-    # print(f"effs[0].size(): {len(effs[0])}")
-    # print(f"effs_unc.size(): {len(effs_unc)}")
+
     return effs, effs_unc
 
 # def draw_efficiencies(dfs, cfg, labels, pt_bins, dau_name):
@@ -173,6 +178,30 @@ def get_selections(cfg):
     
     return selection_vars, ev_sels
 
+def run_pt_bin(pt_min, pt_max, cfg, out_daudir, dau_axis_pt, selection, data_df, mc_df, eff_df_sel_row):
+    dau_pt_sel = selection + f'{pt_min} < {dau_axis_pt} < {pt_max}'
+    
+    df_data_pt = data_df.query(dau_pt_sel)
+    df_mc_pt = mc_df.query(dau_pt_sel)
+
+    fitter = fit_mass(df_data_pt, 'data', pt_min, pt_max, cfg, out_daudir)
+
+    eff_df_row = [*eff_df_sel_row] + [f"[{pt_min}, {pt_max})"]
+    eff_df_mc_row = [*eff_df_sel_row] + [f"[{pt_min}, {pt_max})"]
+    for var in cfg["variables_to_plot"]:
+        effs, effs_uncs = get_efficiency([df_data_pt, df_mc_pt], var)
+        eff_df_row = eff_df_row + [effs[0]] + [effs_uncs[0]]
+        eff_df_mc_row = eff_df_mc_row + [effs[1]] + [effs_uncs[1]]
+    
+    if cfg.get('draw_corr'):
+        draw_correlation_pt(df_data_pt, 'data', pt_min, pt_max, cfg, out_daudir)
+        draw_correlation_pt(df_mc_pt, 'mc', pt_min, pt_max, cfg, out_daudir)
+    if not np.isclose(fitter.get_background()[0], 0, atol=1):
+        draw_pid_distributions([df_data_pt, df_mc_pt], cfg, ['data', 'mc'], [fitter.get_sweights()['signal'], None], pt_min, pt_max, out_daudir)
+    else:
+        draw_pid_distributions([df_data_pt, df_mc_pt], cfg, ['data', 'mc'], [None, None], pt_min, pt_max, out_daudir)
+    return eff_df_row, eff_df_mc_row
+
 def draw_distributions(cfg_file_name):
     # Read the configuration file
     with open(cfg_file_name, 'r') as cfg_file:
@@ -185,11 +214,8 @@ def draw_distributions(cfg_file_name):
         item for pair in zip(cfg["variables_to_plot"], [f"{var}_unc" for var in cfg["variables_to_plot"]]) for item in pair
     ]
 
-    eff_dfs = []
-    eff_dfs_mc = []
-    for dau in cfg['dau_names']:
-        eff_dfs.append(pd.DataFrame(columns=eff_df_cols))
-        eff_dfs_mc.append(pd.DataFrame(columns=eff_df_cols))
+    eff_dfs = {dau: [] for dau in cfg['dau_names']}
+    eff_dfs_mc = {dau: [] for dau in cfg['dau_names']}
 
     # Read the input data
     data_df = pd.read_parquet(cfg['inputs']['data'])
@@ -204,37 +230,22 @@ def draw_distributions(cfg_file_name):
             # eff_df_sel_row.append(pd.Interval(range[0], range[1], closed='left')) 
             eff_df_sel_row.append(f"[{range[0]}, {range[1]})") 
             out_dir += f"{var_name}_{range[0]}_{range[1]}/" 
-        
-        for pt_min, pt_max in zip(pt_bins[:-1], pt_bins[1:]):
+        results = []
+        with ProcessPoolExecutor(max_workers=2) as executor:
             for dau, dau_axis_pt, dau_df, dau_df_mc in zip(cfg['dau_names'], cfg['dau_pt_var_names'], eff_dfs, eff_dfs_mc):
-                out_daudir = f"{dau}/" + out_dir 
-                dau_pt_sel = selection + f'{pt_min} < {dau_axis_pt} < {pt_max}'
-                
-                df_data_pt = data_df.query(dau_pt_sel)
-                df_mc_pt = mc_df.query(dau_pt_sel)
+                for pt_min, pt_max in zip(pt_bins[:-1], pt_bins[1:]):
+                    out_daudir = f"{dau}/" + out_dir
+                    results.append((executor.submit(run_pt_bin, pt_min, pt_max, cfg, out_daudir, dau_axis_pt, selection, data_df, mc_df, eff_df_sel_row), dau))
+                # draw_efficiencies([data_df, mc_df], cfg, ['data', 'mc'], pt_bins, out_daudir)
 
-                fitter = fit_mass(df_data_pt, 'data', pt_min, pt_max, cfg, out_daudir)
+        for result, dau in results:
+            eff, eff_mc = result.result()
+            eff_dfs[dau].append(eff)
+            eff_dfs_mc[dau].append(eff_mc)
 
-                eff_df_row = [*eff_df_sel_row] + [f"[{pt_min}, {pt_max})"]
-                eff_df_mc_row = [*eff_df_sel_row] + [f"[{pt_min}, {pt_max})"]
-                for var in cfg["variables_to_plot"]:
-                    effs, effs_uncs = get_efficiency([df_data_pt, df_mc_pt], var)
-                    eff_df_row = eff_df_row + [effs[0]] + [effs_uncs[0]]
-                    eff_df_mc_row = eff_df_mc_row + [effs[1]] + [effs_uncs[1]]
-                dau_df.loc[len(dau_df)] = eff_df_row
-                dau_df_mc.loc[len(dau_df_mc)] = eff_df_mc_row
-
-                
-                if cfg.get('draw_corr'):
-                    draw_correlation_pt(df_data_pt, 'data', pt_min, pt_max, cfg, out_daudir)
-                    draw_correlation_pt(df_mc_pt, 'mc', pt_min, pt_max, cfg, out_daudir)
-                if not np.isclose(fitter.get_background()[0], 1, atol=1):
-                    draw_pid_distributions([df_data_pt, df_mc_pt], cfg, ['data', 'mc'], [fitter.get_sweights()['signal'], None], pt_min, pt_max, out_daudir)
-                else:
-                    draw_pid_distributions([df_data_pt, df_mc_pt], cfg, ['data', 'mc'], [None, None], pt_min, pt_max, out_daudir)
-            # draw_efficiencies([data_df, mc_df], cfg, ['data', 'mc'], pt_bins, out_daudir)
-    
-    for dau, eff_df, eff_df_mc in zip(cfg['dau_names'], eff_dfs, eff_dfs_mc):
+    for dau in cfg['dau_names']:
+        eff_df = pd.DataFrame(eff_dfs[dau], columns=eff_df_cols)
+        eff_df_mc = pd.DataFrame(eff_dfs_mc[dau], columns=eff_df_cols)
         eff_df.to_parquet(f"{cfg["output"]["dir"]}/{dau}_eff_df.parquet")
         eff_df_mc.to_parquet(f"{cfg["output"]["dir"]}/{dau}_eff_df_mc.parquet")
 
