@@ -19,8 +19,11 @@ def fit_mass(df, suffix, pt_min, pt_max, cfg, sub_dir):
     # Create the data handler
     data_handler = DataHandler(df, cfg["mother_mass_var_name"])
     sgn_func = ["doublecb"]
-    bkg_func = ["nobkg"]
+    bkg_func = [cfg["fit_config"]["bkg_func"]] if cfg["fit_config"].get('bkg_func') else ["nobkg"]
     fitter = F2MassFitter(data_handler, sgn_func, bkg_func, verbosity=0)
+    # print(f"[inside fit_mass] type(fitter): {type(fitter)}")
+    # print(f"fitter.get_ndf(): {fitter.get_ndf()}")
+    # print(f"[inside fit_mass] fitter.get_name_background_pdf(): {fitter._name_background_pdf_}")
     fitter.set_signal_initpar(0, "mu", cfg["fit_config"]["mean"])
     fitter.set_signal_initpar(0, "sigma", cfg["fit_config"]["sigma"])
     if sgn_func[0] == "doublecb":
@@ -29,7 +32,6 @@ def fit_mass(df, suffix, pt_min, pt_max, cfg, sub_dir):
         fitter.set_signal_initpar(0, "nl", cfg["fit_config"]["nl"])
         fitter.set_signal_initpar(0, "nr", cfg["fit_config"]["nr"])
     #fitter.set_background_initpar(0, "c1", -0.001)
-
 
     # Fit the data
     fitter.mass_zfit()
@@ -196,7 +198,13 @@ def run_pt_bin(pt_min, pt_max, cfg, out_daudir, dau_axis_pt, selection, data_df,
     if cfg.get('draw_corr'):
         draw_correlation_pt(df_data_pt, 'data', pt_min, pt_max, cfg, out_daudir)
         draw_correlation_pt(df_mc_pt, 'mc', pt_min, pt_max, cfg, out_daudir)
-    if fitter.get_name_background_pdf()[0] != "nobkg" and not np.isclose(fitter.get_background()[0], 0, atol=1):
+        
+    # print(f"type(fitter): {type(fitter)}")
+    # print(f"fitter.get_ndf(): {fitter.get_ndf()}")
+    # print(f"fitter.get_name_background_pdf(): {fitter._name_background_pdf_}")
+    # print(f"type(fitter): {type(fitter)}")
+    
+    if fitter._name_background_pdf_[0] != "nobkg" and not np.isclose(fitter.get_background()[0], 0, atol=1):
         draw_pid_distributions([df_data_pt, df_mc_pt], cfg, ['data', 'mc'], [fitter.get_sweights()['signal'], None], pt_min, pt_max, out_daudir)
     else:
         draw_pid_distributions([df_data_pt, df_mc_pt], cfg, ['data', 'mc'], [None, None], pt_min, pt_max, out_daudir)
@@ -231,10 +239,14 @@ def draw_distributions(cfg_file_name):
             eff_df_sel_row.append(f"[{range[0]}, {range[1]})") 
             out_dir += f"{var_name}_{range[0]}_{range[1]}/" 
         results = []
-        with ProcessPoolExecutor(max_workers=2) as executor:
-            for dau, dau_axis_pt, dau_df, dau_df_mc in zip(cfg['dau_names'], cfg['dau_pt_var_names'], eff_dfs, eff_dfs_mc):
+        workers = cfg['max_workers'] if cfg.get('max_workers') else 2
+        with ProcessPoolExecutor(max_workers=workers) as executor:
+            for dau, dau_axis_pt in zip(cfg['dau_names'], cfg['dau_pt_var_names']):
                 for pt_min, pt_max in zip(pt_bins[:-1], pt_bins[1:]):
                     out_daudir = f"{dau}/" + out_dir
+                    print("*******************************")
+                    print(f"CONFIG: {eff_df_sel_row}, {pt_min} < pt < {pt_max}")
+                    print("*******************************")
                     results.append((executor.submit(run_pt_bin, pt_min, pt_max, cfg, out_daudir, dau_axis_pt, selection, data_df, mc_df, eff_df_sel_row), dau))
                 # draw_efficiencies([data_df, mc_df], cfg, ['data', 'mc'], pt_bins, out_daudir)
 
