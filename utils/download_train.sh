@@ -1,5 +1,5 @@
-TRAINNUMBER="300243"
-OUTPUTPATH="/alice/cern.ch/user/a/alihyperloop/outputs/0030/300243/53091"
+TRAINNUMBER="306507"
+OUTPUTPATH="/alice/cern.ch/user/a/alihyperloop/outputs/0030/306507/56316"
 DATASETTAG="LHC22o_pass7"
 SUFFIX="K0s_Lambda"
 

@@ -1,4 +1,5 @@
 import argparse
+import sys
 import os
 os.environ["CUDA_VISIBLE_DEVICES"] = ""  # pylint: disable=wrong-import-position
 import pandas as pd
@@ -15,12 +16,15 @@ from draw_correlations import draw_correlation_pt
 
 ROOT.gROOT.SetBatch(True)
 
-def fit_mass(df, suffix, pt_min, pt_max, cfg, sub_dir):
+def fit_mass(df, suffix, pt_min, pt_max, sel, cfg, sub_dir):
     # Create the data handler
     data_handler = DataHandler(df, cfg["mother_mass_var_name"])
     sgn_func = ["doublecb"]
     bkg_func = [cfg["fit_config"]["bkg_func"]] if cfg["fit_config"].get('bkg_func') else ["nobkg"]
-    fitter = F2MassFitter(data_handler, sgn_func, bkg_func, verbosity=0)
+    fitter_name = f"{suffix}_{pt_min*10:.0f}_{pt_max*10:.0f}"
+    for range in sel:
+        fitter_name += f"_{range[0]}_{range[1]}"
+    fitter = F2MassFitter(data_handler, sgn_func, bkg_func, verbosity=0, name=fitter_name)
     fitter.set_signal_initpar(0, "mu", cfg["fit_config"]["mean"])
     fitter.set_signal_initpar(0, "sigma", cfg["fit_config"]["sigma"])
     if sgn_func[0] == "doublecb":
@@ -31,7 +35,12 @@ def fit_mass(df, suffix, pt_min, pt_max, cfg, sub_dir):
     #fitter.set_background_initpar(0, "c1", -0.001)
 
     # Fit the data
-    fitter.mass_zfit()
+    fit_res = fitter.mass_zfit()
+    if fit_res.status != 0:
+        with open(f"{cfg['output']['dir']}/failed_fits.txt", "a") as f:
+            f.write(f"{fitter_name}\n")
+            print(f"Fit failed for {fitter_name}")
+        return
 
     loc = ["lower left", "upper left"]
     if cfg["mother_mass_var_name"] == "fMassK0":
@@ -177,16 +186,17 @@ def get_selections(cfg):
     
     return selection_vars, ev_sels
 
-def run_pt_bin(pt_min, pt_max, cfg, out_daudir, dau_axis_pt, selection, data_df, mc_df, eff_df_sel_row):
+def run_pt_bin(pt_min, pt_max, cfg, out_daudir, dau_axis_pt, selection, data_df, mc_df, eff_df_sel_row, sel):
     dau_pt_sel = selection + f'{pt_min} < {dau_axis_pt} < {pt_max}'
     
     df_data_pt = data_df.query(dau_pt_sel)
     df_mc_pt = mc_df.query(dau_pt_sel)
 
-    fitter = fit_mass(df_data_pt, 'data', pt_min, pt_max, cfg, out_daudir)
-
     eff_df_row = [*eff_df_sel_row] + [f"[{pt_min}, {pt_max})"]
     eff_df_mc_row = [*eff_df_sel_row] + [f"[{pt_min}, {pt_max})"]
+
+    fitter = fit_mass(df_data_pt, 'data', pt_min, pt_max, sel, cfg, out_daudir)
+
     for var in cfg["variables_to_plot"]:
         effs, effs_uncs = get_efficiency([df_data_pt, df_mc_pt], var)
         eff_df_row = eff_df_row + [effs[0]] + [effs_uncs[0]]
@@ -239,7 +249,7 @@ def draw_distributions(cfg_file_name):
                     print("*******************************")
                     print(f"CONFIG: {eff_df_sel_row}, {pt_min} < pt < {pt_max}")
                     print("*******************************")
-                    results.append((executor.submit(run_pt_bin, pt_min, pt_max, cfg, out_daudir, dau_axis_pt, selection, data_df, mc_df, eff_df_sel_row), dau))
+                    results.append((executor.submit(run_pt_bin, pt_min, pt_max, cfg, out_daudir, dau_axis_pt, selection, data_df, mc_df, eff_df_sel_row, sel), dau))
                 # draw_efficiencies([data_df, mc_df], cfg, ['data', 'mc'], pt_bins, out_daudir)
 
         for result, dau in results:
