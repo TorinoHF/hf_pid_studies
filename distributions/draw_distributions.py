@@ -21,9 +21,6 @@ def fit_mass(df, suffix, pt_min, pt_max, cfg, sub_dir):
     sgn_func = ["doublecb"]
     bkg_func = [cfg["fit_config"]["bkg_func"]] if cfg["fit_config"].get('bkg_func') else ["nobkg"]
     fitter = F2MassFitter(data_handler, sgn_func, bkg_func, verbosity=0)
-    # print(f"[inside fit_mass] type(fitter): {type(fitter)}")
-    # print(f"fitter.get_ndf(): {fitter.get_ndf()}")
-    # print(f"[inside fit_mass] fitter.get_name_background_pdf(): {fitter._name_background_pdf_}")
     fitter.set_signal_initpar(0, "mu", cfg["fit_config"]["mean"])
     fitter.set_signal_initpar(0, "sigma", cfg["fit_config"]["sigma"])
     if sgn_func[0] == "doublecb":
@@ -198,11 +195,6 @@ def run_pt_bin(pt_min, pt_max, cfg, out_daudir, dau_axis_pt, selection, data_df,
     if cfg.get('draw_corr'):
         draw_correlation_pt(df_data_pt, 'data', pt_min, pt_max, cfg, out_daudir)
         draw_correlation_pt(df_mc_pt, 'mc', pt_min, pt_max, cfg, out_daudir)
-        
-    # print(f"type(fitter): {type(fitter)}")
-    # print(f"fitter.get_ndf(): {fitter.get_ndf()}")
-    # print(f"fitter.get_name_background_pdf(): {fitter._name_background_pdf_}")
-    # print(f"type(fitter): {type(fitter)}")
     
     if fitter._name_background_pdf_[0] != "nobkg" and not np.isclose(fitter.get_background()[0], 0, atol=1):
         draw_pid_distributions([df_data_pt, df_mc_pt], cfg, ['data', 'mc'], [fitter.get_sweights()['signal'], None], pt_min, pt_max, out_daudir)
