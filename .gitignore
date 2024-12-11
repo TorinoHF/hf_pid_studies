@@ -3,6 +3,8 @@ seldatasets
 distributions/distributions
 *.root
 
+*.root
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
