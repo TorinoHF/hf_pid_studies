@@ -16,6 +16,15 @@ from draw_correlations import draw_correlation_pt
 
 ROOT.gROOT.SetBatch(True)
 
+def get_distribution_mean_sigma(df, var, weights=None):
+    df = df.query(f"abs({var}) < 5")
+    mean = np.average(df[var], weights=weights)
+    if weights is not None:
+        sigma = np.sqrt(np.average((df[var] - mean)**2, weights=weights))
+    else:
+        sigma = df[var].std()
+    return mean, sigma
+
 def fit_mass(df, suffix, pt_min, pt_max, sel, cfg, sub_dir):
     # Create the data handler
     data_handler = DataHandler(df, cfg["mother_mass_var_name"])
@@ -156,7 +165,7 @@ def run_pt_bin(pt_min, pt_max, cfg, out_daudir, dau_axis_pt, selection, data_df,
 
     fitter, fit_status = fit_mass(df_data_pt, 'data', pt_min, pt_max, sel, cfg, out_daudir)
 
-    if fit_status != 0:
+    if fit_status == 0:
         for var in cfg["variables_to_plot"]:
             effs, effs_uncs = get_efficiency([df_data_pt, df_mc_pt], var)
             eff_df_row = eff_df_row + [effs[0]] + [effs_uncs[0]]
@@ -168,8 +177,18 @@ def run_pt_bin(pt_min, pt_max, cfg, out_daudir, dau_axis_pt, selection, data_df,
 
         if fitter._name_background_pdf_[0] != "nobkg" and not np.isclose(fitter.get_background()[0], 0, atol=1):
             draw_pid_distributions([df_data_pt, df_mc_pt], cfg, ['data', 'mc'], [fitter.get_sweights()['signal'], None], pt_min, pt_max, out_daudir)
+            for var in cfg['variables_to_plot']:
+                mean_data, sigma_data = get_distribution_mean_sigma(df_data_pt, var, fitter.get_sweights()['signal'])
+                mean_mc, sigma_mc = get_distribution_mean_sigma(df_mc_pt, var)
+                eff_df_row = eff_df_row + [mean_data, sigma_data]
+                eff_df_mc_row = eff_df_mc_row + [mean_mc, sigma_mc]
         else:
             draw_pid_distributions([df_data_pt, df_mc_pt], cfg, ['data', 'mc'], [None, None], pt_min, pt_max, out_daudir)
+            for var in cfg['variables_to_plot']:
+                mean_data, sigma_data = get_distribution_mean_sigma(df_data_pt, var) 
+                mean_mc, sigma_mc = get_distribution_mean_sigma(df_mc_pt, var)
+                eff_df_row = eff_df_row + [mean_data, sigma_data]
+                eff_df_mc_row = eff_df_mc_row + [mean_mc, sigma_mc]
     return eff_df_row, eff_df_mc_row, fit_status
 
 def draw_distributions(cfg_file_name):
@@ -181,7 +200,14 @@ def draw_distributions(cfg_file_name):
     selection_vars, ev_sels = get_selections(cfg)
 
     eff_df_cols = selection_vars + ["fPt"] + [
-        item for pair in zip(cfg["variables_to_plot"], [f"{var}_unc" for var in cfg["variables_to_plot"]]) for item in pair
+        item for pair in zip(
+            cfg["variables_to_plot"],
+            [f"{var}_unc" for var in cfg["variables_to_plot"]]         
+            ) for item in pair
+    ] + [ item for pair in zip(
+            [f"{var.replace("Tpc", "Tof") if "Tpc" in var else var.replace("Tof", "Tpc")}_mean" for var in cfg["variables_to_plot"]],
+            [f"{var.replace("Tpc", "Tof") if "Tpc" in var else var.replace("Tof", "Tpc")}_std" for var in cfg["variables_to_plot"]]  
+            ) for item in pair
     ]
 
     eff_dfs = {dau: [] for dau in cfg['dau_names']}
@@ -214,7 +240,7 @@ def draw_distributions(cfg_file_name):
 
         for result, dau in results:
             eff, eff_mc, fit_status = result.result()
-            if fit_status != 0:
+            if fit_status == 0:
                 eff_dfs[dau].append(eff)
                 eff_dfs_mc[dau].append(eff_mc)
 
