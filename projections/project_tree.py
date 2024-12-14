@@ -102,6 +102,10 @@ def project_tree(config_file):
                 df_mc.append(folder.arrays(library="pd"))
         df_mc = pd.concat(df_mc)
     df_mc = df_mc.query(cuts)
+    flag_sel = ""
+    for value in config["flag"]["values"]:
+        flag_sel += f"abs({config['flag']['name']}) == {value} or "
+    df_mc = df_mc.query(flag_sel[:-3])
     print("Loaded MC.")
 
     print("Saving MC to parquet...")
