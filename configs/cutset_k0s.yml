@@ -17,8 +17,8 @@ antilambda_mass_upper:
 
 radius:
     ranges:
-        - min: 0.5
-          max: 10000.0
+        - min: 0.0
+          max: 2.3
     name: 'fRadius'
 
 cpa:
