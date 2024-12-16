@@ -1,5 +1,0 @@
-trees:
-##### K0s MC
--   treefile: 'datasets/pp/LHC24g5/Train308276/Tree_LHC24g5_K0s_Lambda.root'
-    selections: "fCandFlag == 1"
-    suffix: "k0s"

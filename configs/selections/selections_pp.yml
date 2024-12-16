@@ -1,11 +1,13 @@
 trees:
 ##### K0s data
--   treefile: 'datasets/pp/LHC22o_pass7/Train306507/Tree_LHC22o_pass7_K0s_Lambda.root'
+-   treefiledata: 'datasets/pp/LHC22o_pass7/Train306507/Tree_LHC22o_pass7_K0s_Lambda.root'
+    treefilemc: 'datasets/pp/LHC24g5/Train308276/Tree_LHC24g5_K0s_Lambda.root'
+    candflag: "fCandFlag == 1"
     selections: "fCpa > 0.9999 and 
                  (fMassLambda < 1.11 or fMassLambda > 1.12) and 
                  fRadius < 2.3 and 
                  (fMassAntiLambda < 1.114 or fMassAntiLambda > 1.117) and 
                  fQtArm >  0.18"
+    outdir: 'datasets/pp/skimmed/'
     treename: O2pidv0s
     suffix: "k0s"
-

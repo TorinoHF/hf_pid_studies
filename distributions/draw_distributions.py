@@ -177,9 +177,6 @@ def run_pt_bin(pt_min, pt_max, cfg, out_daudir, dau_axis_pt, selection, data_df,
 
         if fitter._name_background_pdf_[0] != "nobkg" and not np.isclose(fitter.get_background()[0], 0, atol=1):
             draw_pid_distributions([df_data_pt, df_mc_pt], cfg, ['data', 'mc'], [fitter.get_sweights()['signal'], None], pt_min, pt_max, out_daudir)
-            print(f"fitter.get_sweights()['signal']: {fitter.get_sweights()['signal']}")
-            print(f"len(fitter.get_sweights()['signal']): {len(fitter.get_sweights()['signal'])}")
-            print(f"len(df_data_pt): {len(df_data_pt)}")
             df_data_pt['w_splot'] = fitter.get_sweights()['signal']
             for var in cfg['variables_to_plot']:
                 mean_data, sigma_data = get_distribution_mean_sigma(df_data_pt, var, df_data_pt['w_splot']) # fitter.get_sweights()['signal'])
