@@ -6,5 +6,6 @@ trees:
                  fRadius < 2.3 and 
                  (fMassAntiLambda < 1.114 or fMassAntiLambda > 1.117) and 
                  fQtArm >  0.18"
+    treename: O2pidv0s
     suffix: "k0s"
 
