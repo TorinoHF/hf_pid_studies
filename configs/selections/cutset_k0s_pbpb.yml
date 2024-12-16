@@ -1,0 +1,33 @@
+lambda_mass:
+    ranges:
+        - min: 0
+          max: 1.11
+        - min: 1.12
+          max: 10000.0
+    name: 'fMassLambda'
+
+antilambda_mass_upper:
+    ranges:
+        - min: 0
+          max: 1.11
+        - min: 1.12
+          max: 10000.0
+    name: 'fMassAntiLambda'
+
+radius:
+    ranges:
+        - min: 0.0
+          max: 2.3
+    name: 'fRadius'
+
+cpa:
+    ranges:
+        - min: 0.9999
+          max: 1.0
+    name: 'fCpa'
+
+qtArm:
+    ranges:
+        - min: 0.18
+          max: 1000.0
+    name: 'fQtArm'

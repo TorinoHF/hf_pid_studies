@@ -1,0 +1,20 @@
+trees:
+##### Omega MC
+-   treefile: 'datasets/pbpb/casc/MC/Train306408/LHC24g2_medium_casc.parquet'
+    # selections: ""
+    suffix: "omegas"
+    
+##### Lambda MC
+-   treefile: 'datasets/pbpb/v0s/MC/Train306702/LHC24g2_medium.parquet'
+    selections: "fCandFlag == 2"
+    suffix: "lambdas"
+    
+##### AntiLambda MC
+-   treefile: 'datasets/pbpb/v0s/MC/Train306702/LHC24g2_medium.parquet'
+    selections: "fCandFlag == -2"
+    suffix: "antilambdas"
+
+##### K0s MC
+-   treefile: 'datasets/pbpb/v0s/MC/Train306702/LHC24g2_medium.parquet'
+    selections: "fCandFlag == 1"
+    suffix: "k0s"

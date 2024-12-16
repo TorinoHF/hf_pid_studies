@@ -1,0 +1,10 @@
+trees:
+##### K0s data
+-   treefile: 'datasets/pp/LHC22o_pass7/Train306507/Tree_LHC22o_pass7_K0s_Lambda.root'
+    selections: "fCpa > 0.9999 and 
+                 (fMassLambda < 1.11 or fMassLambda > 1.12) and 
+                 fRadius < 2.3 and 
+                 (fMassAntiLambda < 1.114 or fMassAntiLambda > 1.117) and 
+                 fQtArm >  0.18"
+    suffix: "k0s"
+

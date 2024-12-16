@@ -1,0 +1,40 @@
+trees:
+##### Omega data
+-   treefile: 'datasets/pbpb/casc/Data/Train306756/LHC23zzh_pass4_small.parquet'
+    selections: "(fMassOmega > 1.65 and fMassOmega < 1.70) and 
+                 (fMassXi < 1.30 or fMassXi > 1.35) and 
+                 fCascCosPa > 0.99999 and 
+                 fDcaV0Daughters < 0.01 and 
+                 fDcaV0ToPv > 0.02 and 
+                 fDcaV0ToPv < 1"
+    suffix: "omegas"
+
+##### Lambda data
+-   treefile: 'datasets/pbpb/v0s/Data/Train306573/LHC23zzh_pass4_small_v0s.parquet'
+    selections: "fCpa > 0.999 and 
+                 (fMassK0 < 0.470 or fMassK0 > 0.525) and 
+                 fQtArm < 0.12 and 
+                 fRadius > 0.5 and 
+                 fRadius < 2.3 and 
+                 ((fMassLambda > 1.05 and fMassLambda < 1.130) and 
+                 (fMassAntiLambda < 1.05 or fMassAntiLambda > 1.130))"
+    suffix: "lambdas"
+
+##### AntiLambda data
+-   treefile: 'datasets/pbpb/v0s/Data/Train306573/LHC23zzh_pass4_small_v0s.parquet'
+    selections: "fCpa > 0.999 and 
+                 (fMassK0 < 0.470 or fMassK0 > 0.525) and 
+                 fQtArm < 0.12 and fRadius > 0.5 and 
+                 fRadius < 2.3 and 
+                 ((fMassLambda < 1.05 or fMassLambda > 1.130) and 
+                 (fMassAntiLambda > 1.05 and fMassAntiLambda < 1.130))"
+    suffix: "antilambdas"
+
+##### K0s data
+-   treefile: 'datasets/pbpb/v0s/Data/Train306573/LHC23zzh_pass4_small_v0s.parquet'
+    selections: "fCpa > 0.9999 and 
+                 (fMassLambda < 1.114 or fMassLambda > 1.117) and 
+                 fRadius < 2.3 and 
+                 (fMassAntiLambda < 1.114 or fMassAntiLambda > 1.117) and 
+                 fQtArm >  0.12"
+    suffix: "k0s"
