@@ -39,10 +39,10 @@ def fit_mass(df, suffix, pt_min, pt_max, sel, cfg, sub_dir):
         fitter.set_signal_initpar(0, "mu", cfg["fit_config"]["mean"])
         fitter.set_signal_initpar(0, "sigma", cfg["fit_config"]["sigma"])
         if sgn_func[0] == "doublecb":
-            fitter.set_signal_initpar(0, "alphal", cfg["fit_config"]["alphal"])
-            fitter.set_signal_initpar(0, "alphar", cfg["fit_config"]["alphar"])
-            fitter.set_signal_initpar(0, "nl", cfg["fit_config"]["nl"])
-            fitter.set_signal_initpar(0, "nr", cfg["fit_config"]["nr"])
+            fitter.set_signal_initpar(0, "alphal", cfg["fit_config"]["alphal"], limits=[1, 10])
+            fitter.set_signal_initpar(0, "alphar", cfg["fit_config"]["alphar"], limits=[1, 10])
+            fitter.set_signal_initpar(0, "nl", cfg["fit_config"]["nl"], limits=[1, 30])
+            fitter.set_signal_initpar(0, "nr", cfg["fit_config"]["nr"], limits=[1, 30])
         #fitter.set_background_initpar(0, "c1", -0.001)
 
         # Fit the data
@@ -52,10 +52,10 @@ def fit_mass(df, suffix, pt_min, pt_max, sel, cfg, sub_dir):
         fitter.set_signal_initpar(0, "mu", cfg["fit_config"]["mean"])
         fitter.set_signal_initpar(0, "sigma", cfg["fit_config"]["sigma"])
         if sgn_func[0] == "doublecb":
-            fitter.set_signal_initpar(0, "alphal", cfg["fit_config"]["alphal"])
-            fitter.set_signal_initpar(0, "alphar", cfg["fit_config"]["alphar"])
-            fitter.set_signal_initpar(0, "nl", cfg["fit_config"]["nl"])
-            fitter.set_signal_initpar(0, "nr", cfg["fit_config"]["nr"])
+            fitter.set_signal_initpar(0, "alphal", cfg["fit_config"]["alphal"], limits=[0.5, 10])
+            fitter.set_signal_initpar(0, "alphar", cfg["fit_config"]["alphar"], limits=[0.5, 10])
+            fitter.set_signal_initpar(0, "nl", cfg["fit_config"]["nl"], limits=[1, 30])
+            fitter.set_signal_initpar(0, "nr", cfg["fit_config"]["nr"], limits=[1, 30])
         #fitter.set_background_initpar(0, "c1", -0.001)
 
         # Fit the data
@@ -100,11 +100,10 @@ def fit_mass(df, suffix, pt_min, pt_max, sel, cfg, sub_dir):
 
 def draw_pid_distributions(dfs, cfg, labels, weights, pt_min, pt_max, sub_dir):
     for var in cfg['variables_to_plot']:
-        plot_var = var.replace("Tpc", "Tof") if "Tpc" in var else var.replace("Tof", "Tpc")
         fig, ax = plt.subplots(1, 1, figsize=(12, 10))
         for df, label, weight in zip(dfs, labels, weights):
             df[var].hist(bins=100, label=label, weights=weight, alpha=0.5, density=True, range=(-5,5))
-        ax.set_xlabel(plot_var)
+        ax.set_xlabel(var)
         ax.set_ylabel('Entries')
         ax.legend()
         output_dir = os.path.join(cfg['output']['dir'], f'{sub_dir}/{pt_min*10:.0f}_{pt_max*10:.0f}')
@@ -113,7 +112,7 @@ def draw_pid_distributions(dfs, cfg, labels, weights, pt_min, pt_max, sub_dir):
         fig.savefig(
             os.path.join(
                 output_dir,
-                f'{plot_var}.png'
+                f'{var}.png'
             ),
             dpi=300, bbox_inches="tight"
         )
@@ -126,11 +125,8 @@ def get_efficiency(dfs, var):
         effs_unc.append([])
         for nsigma in [3, 2, 1]:
             # print(f'NSIGMA {nsigma}')
-            if "Tpc" not in var: # TPC
-                n_sel = len(df.query(f'abs({var}) < {nsigma}'))
-            else: # TOF
-                n_sel = len(df.query(f'abs({var}) < {nsigma} or {var}==-999'))
-            n_total = len(df)
+            n_sel = len(df.query(f'abs({var}) < {nsigma}'))
+            n_total = len(df.query(f'{var} > -900'))
             eff = n_sel / n_total if n_total > 0 else 0
             eff_unc = np.sqrt(eff * (1 - eff) / n_total) if n_total > 0 else 0
             effs[-1].append(eff)
@@ -206,8 +202,8 @@ def draw_distributions(cfg_file_name):
             [f"{var}_unc" for var in cfg["variables_to_plot"]]         
             ) for item in pair
     ] + [ item for pair in zip(
-            [f"{var.replace("Tpc", "Tof") if "Tpc" in var else var.replace("Tof", "Tpc")}_mean" for var in cfg["variables_to_plot"]],
-            [f"{var.replace("Tpc", "Tof") if "Tpc" in var else var.replace("Tof", "Tpc")}_std" for var in cfg["variables_to_plot"]]  
+            [f"{var}_mean" for var in cfg["variables_to_plot"]],
+            [f"{var}_std" for var in cfg["variables_to_plot"]]  
             ) for item in pair
     ]
 
