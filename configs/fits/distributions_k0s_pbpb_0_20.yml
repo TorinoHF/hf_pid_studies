@@ -1,6 +1,6 @@
 inputs:
-  data: /home/mdicosta/hf_pid_studies/seldatasets/pbpb/data/LHC23zzh_pass4_small_k0s.parquet
-  mc: /home/mdicosta/hf_pid_studies/seldatasets/pbpb/mc/LHC24g2_medium_k0s.parquet
+  data: /home/mdicosta/hf_pid_studies/datasets/pbpb/skimmed/data/LHC23zzh_pass4_small_k0s_huge.parquet
+  mc: /home/mdicosta/hf_pid_studies/datasets/pbpb/skimmed/mc/LHC24g2_medium_k0s_huge.parquet
 
 mother_mass_var_name: fMassK0
 mother_pt_var_name: fPt
@@ -12,14 +12,14 @@ fit_config:
   bkg_func: chebpol1
   mean: 0.5
   sigma: 0.01
-  nl: 10
-  nr: 10
-  alphal: 1.
-  alphar: 1.
+  nl: 4
+  nr: 5
+  alphal: 3
+  alphar: 3
 max_workers: 2
-pt_bins: [0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.6, 2.0] #, 5.0] #, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.5, 2.0, 4.0]
+pt_bins: [0., 0.4, 0.8, 1.2, 1.6, 2.0, 5.0] #, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.5, 2.0, 4.0]
 cent_bins: [
-            # [0, 20], 
+            [0, 20], 
             # [20, 40], 
             # [40, 60], 
             # [60, 80], 
@@ -34,8 +34,7 @@ cent_bins: [
             # [50, 60] 
            ]
 occ_bins: [ 
-            [0, 10000], 
-            [10000, 20000], 
+            [0, 20000], 
             [20000, 40000], 
             [40000, 60000], 
             [60000, 99999999], 
@@ -49,4 +48,4 @@ occ_bins: [
           ]
 
 output:
-  dir: distributions/k0s/pbpb/occdiff
+  dir: distributions/k0s/pbpb/cent_0_20

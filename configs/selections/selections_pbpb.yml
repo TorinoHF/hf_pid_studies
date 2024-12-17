@@ -1,52 +1,54 @@
 trees:
 ##### Omega data
--   treefiledata: 'datasets/pbpb/casc/Data/Train306756/LHC23zzh_pass4_small.parquet'
-    treefilemc: 'datasets/pbpb/casc/MC/Train306408/LHC24g2_medium_casc.parquet'
-    candflag: 3
-    selections: "(fMassOmega > 1.65 and fMassOmega < 1.70) and 
-                 (fMassXi < 1.30 or fMassXi > 1.35) and 
-                 fCascCosPa > 0.99999 and 
-                 fDcaV0Daughters < 0.01 and 
-                 fDcaV0ToPv > 0.02 and 
-                 fDcaV0ToPv < 1"
-    outdir: 'datasets/pbpb/skimmed'
-    suffix: "omegas"
+# -   treefiledata: 'datasets/pbpb/casc/Data/Train306756/LHC23zzh_pass4_small.parquet'
+#     treefilemc: 'datasets/pbpb/casc/MC/Train306408/LHC24g2_medium_casc.parquet'
+#     candflag: 3
+#     selections: "(fMassOmega > 1.65 and fMassOmega < 1.70) and 
+#                  (fMassXi < 1.30 or fMassXi > 1.35) and 
+#                  fCascCosPa > 0.99999 and 
+#                  fDcaV0Daughters < 0.01 and 
+#                  fDcaV0ToPv > 0.02 and 
+#                  fDcaV0ToPv < 1"
+#     outdir: 'datasets/pbpb/skimmed'
+#     suffix: "omegas"
 
-##### Lambda data
--   treefiledata: 'datasets/pbpb/v0s/Data/Train306573/LHC23zzh_pass4_small_v0s.parquet'
-    treefilemc: 'datasets/pbpb/v0s/MC/Train306702/LHC24g2_medium.parquet'
-    candflag: 2
-    selections: "fCpa > 0.999 and 
-                 (fMassK0 < 0.470 or fMassK0 > 0.525) and 
-                 fQtArm < 0.12 and 
-                 fRadius > 0.5 and 
-                 fRadius < 2.3 and 
-                 ((fMassLambda > 1.05 and fMassLambda < 1.130) and 
-                 (fMassAntiLambda < 1.05 or fMassAntiLambda > 1.130))"
-    outdir: 'datasets/pbpb/skimmed'
-    suffix: "lambdas"
+# ##### Lambda data
+# -   treefiledata: 'datasets/pbpb/v0s/Data/Train306573/LHC23zzh_pass4_small_v0s.parquet'
+#     treefilemc: 'datasets/pbpb/v0s/MC/Train306702/LHC24g2_medium.parquet'
+#     candflag: 2
+#     selections: "fCpa > 0.999 and 
+#                  (fMassK0 < 0.470 or fMassK0 > 0.525) and 
+#                  fQtArm < 0.12 and 
+#                  fRadius > 0.5 and 
+#                  fRadius < 2.3 and 
+#                  ((fMassLambda > 1.05 and fMassLambda < 1.130) and 
+#                  (fMassAntiLambda < 1.05 or fMassAntiLambda > 1.130))"
+#     outdir: 'datasets/pbpb/skimmed'
+#     suffix: "lambdas"
 
-##### AntiLambda data
--   treefiledata: 'datasets/pbpb/v0s/Data/Train306573/LHC23zzh_pass4_small_v0s.parquet'
-    treefilemc: 'datasets/pbpb/v0s/MC/Train306702/LHC24g2_medium.parquet'
-    candflag: -2
-    selections: "fCpa > 0.999 and 
-                 (fMassK0 < 0.470 or fMassK0 > 0.525) and 
-                 fQtArm < 0.12 and fRadius > 0.5 and 
-                 fRadius < 2.3 and 
-                 ((fMassLambda < 1.05 or fMassLambda > 1.130) and 
-                 (fMassAntiLambda > 1.05 and fMassAntiLambda < 1.130))"
-    outdir: 'datasets/pbpb/skimmed'
-    suffix: "antilambdas"
+# ##### AntiLambda data
+# -   treefiledata: 'datasets/pbpb/v0s/Data/Train306573/LHC23zzh_pass4_small_v0s.parquet'
+#     treefilemc: 'datasets/pbpb/v0s/MC/Train306702/LHC24g2_medium.parquet'
+#     candflag: -2
+#     selections: "fCpa > 0.999 and 
+#                  (fMassK0 < 0.470 or fMassK0 > 0.525) and 
+#                  fQtArm < 0.12 and fRadius > 0.5 and 
+#                  fRadius < 2.3 and 
+#                  ((fMassLambda < 1.05 or fMassLambda > 1.130) and 
+#                  (fMassAntiLambda > 1.05 and fMassAntiLambda < 1.130))"
+#     outdir: 'datasets/pbpb/skimmed'
+#     suffix: "antilambdas"
 
 ##### K0s data
--   treefiledata: 'datasets/pbpb/v0s/Data/Train306573/LHC23zzh_pass4_small_v0s.parquet'
-    treefilemc: 'datasets/pbpb/v0s/MC/Train306702/LHC24g2_medium.parquet'
+-   treefiledata: 'datasets/pbpb/v0s/Data/Train312589/LHC23zzh_pass4_small_k0s.parquet'
+    treefilemc: 'datasets/pbpb/v0s/MC/Train312442/LHC24g2_medium_k0s.parquet'
     candflag: 1
-    selections: "fCpa > 0.9999 and 
+    selections: "fCpa > 0.9995 and
+                 fDcaV0Daughters < 0.15 and 
+                 fDcaV0ToPv < 0.15 and 
                  (fMassLambda < 1.114 or fMassLambda > 1.117) and 
                  fRadius < 2.3 and 
                  (fMassAntiLambda < 1.114 or fMassAntiLambda > 1.117) and 
                  fQtArm >  0.12"
     outdir: 'datasets/pbpb/skimmed'
-    suffix: "k0s"
+    suffix: "k0s_huge"
