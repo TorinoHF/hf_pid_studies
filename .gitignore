@@ -1,5 +1,6 @@
 datasets
 seldatasets
+selections
 distributions/distributions
 *.root
 
