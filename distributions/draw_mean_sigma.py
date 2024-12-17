@@ -1,10 +1,9 @@
+import re
+import os
+import argparse
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
-import re
-import os
-
-import argparse
 
 def convert_to_interval(interval_str):
     match = re.match(r"(\[|\()(\d+(\.\d+)?),\s*(\d+(\.\d+)?)(\]|\))", interval_str)
