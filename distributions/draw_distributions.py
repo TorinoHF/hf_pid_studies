@@ -61,13 +61,12 @@ def fit_mass(df, suffix, pt_min, pt_max, sel, cfg, sub_dir, sel_vars):
 
         # Fit the data
         fit_res = fitter.mass_zfit()
-    
+        
     if fit_res.valid == 0:
         with open(f"{cfg['output']['dir']}/failed_fits.txt", "a") as f:
             f.write(f"{fitter_name}\n")
             print(f"Fit failed for {fitter_name}")
-        return fitter, fit_res.valid
-
+    
     loc = ["lower left", "upper left"]
     if cfg["mother_mass_var_name"] == "fMassK0":
         ax_title = r"$M(\mathrm{\pi\pi})$ GeV$/c^2$"
@@ -82,7 +81,7 @@ def fit_mass(df, suffix, pt_min, pt_max, sel, cfg, sub_dir, sel_vars):
 
     fig, _ = fitter.plot_mass_fit(
         style="ATLAS",
-        show_extra_info = bkg_func[0] != "nobkg" and fitter.get_background()[1] != 0,
+        show_extra_info = fitter._name_background_pdf_[0] != "nobkg" and fitter.get_background()[1] != 0,
         figsize=(8, 8), extra_info_loc=loc,
         axis_title=ax_title
     )
@@ -97,6 +96,7 @@ def fit_mass(df, suffix, pt_min, pt_max, sel, cfg, sub_dir, sel_vars):
         ),
         dpi=300, bbox_inches="tight"
     )
+
     return fitter, fit_res.valid
 
 def draw_pid_distributions(dfs, cfg, labels, pt_min, pt_max, sub_dir):
@@ -174,19 +174,14 @@ def run_pt_bin(pt_min, pt_max, cfg, out_daudir, dau_axis_pt, selection, data_df,
         if fitter._name_background_pdf_[0] != "nobkg" and not np.isclose(fitter.get_background()[0], 0, atol=1):
             df_data_pt = df_data_pt.copy()
             df_data_pt.loc[:, 'w_splot'] = fitter.get_sweights()['signal']
-            draw_pid_distributions([df_data_pt, df_mc_pt], cfg, ['data', 'mc'], pt_min, pt_max, out_daudir)
-            for var in cfg['variables_to_plot']:
-                mean_data, sigma_data = get_distribution_mean_sigma(df_data_pt, var) # fitter.get_sweights()['signal'])
-                mean_mc, sigma_mc = get_distribution_mean_sigma(df_mc_pt, var)
-                eff_df_row = eff_df_row + [mean_data, sigma_data]
-                eff_df_mc_row = eff_df_mc_row + [mean_mc, sigma_mc]
-        else:
-            draw_pid_distributions([df_data_pt, df_mc_pt], cfg, ['data', 'mc'], pt_min, pt_max, out_daudir)
-            for var in cfg['variables_to_plot']:
-                mean_data, sigma_data = get_distribution_mean_sigma(df_data_pt, var) 
-                mean_mc, sigma_mc = get_distribution_mean_sigma(df_mc_pt, var)
-                eff_df_row = eff_df_row + [mean_data, sigma_data]
-                eff_df_mc_row = eff_df_mc_row + [mean_mc, sigma_mc]
+        
+        draw_pid_distributions([df_data_pt, df_mc_pt], cfg, ['data', 'mc'], pt_min, pt_max, out_daudir)
+        for var in cfg['variables_to_plot']:
+            mean_data, sigma_data = get_distribution_mean_sigma(df_data_pt, var)
+            mean_mc, sigma_mc = get_distribution_mean_sigma(df_mc_pt, var)
+            eff_df_row = eff_df_row + [mean_data, sigma_data]
+            eff_df_mc_row = eff_df_mc_row + [mean_mc, sigma_mc]
+
     return eff_df_row, eff_df_mc_row, fit_valid
 
 def draw_distributions(cfg_file_name):

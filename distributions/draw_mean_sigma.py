@@ -188,7 +188,7 @@ def draw_plots(input_folder):
         df_neg_pi[col] = df_neg_pi[col].apply(convert_to_interval) 
         df_pos_pi[col] = df_pos_pi[col].apply(convert_to_interval)
 
-    occ_bins = [0, 4000, 6000, 8000, 100000]
+    occ_bins = [0, 20000, 40000, 99999999]
     labels = [f'{occ_min} < Occupancy < {occ_max}' for occ_min, occ_max in zip(occ_bins[:-1], occ_bins[1:])]
 
     occ_dfs_pos_pi_mc = [df_pos_pi_mc.query(f'fOccupancyFt0c == @pd.Interval({occ_min}, {occ_max}, closed="left")').reset_index(drop=True) for occ_min, occ_max in zip(occ_bins[:-1], occ_bins[1:])]
