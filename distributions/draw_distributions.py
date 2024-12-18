@@ -18,7 +18,7 @@ ROOT.gROOT.SetBatch(True)
 
 def get_distribution_mean_sigma(df, var):
     df = df.query(f"abs({var}) < 5")
-    if "w_splot" in df.columns:
+    if "w_splot" in df.columns and sum(df['w_splot'])>0:
         mean = np.average(df[var], weights=df['w_splot'])
         sigma = np.sqrt(np.average((df[var] - mean)**2, weights=df['w_splot']))
     else:
