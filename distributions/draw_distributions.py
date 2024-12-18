@@ -216,6 +216,8 @@ def draw_distributions(cfg_file_name):
     mc_df = pd.read_parquet(cfg['inputs']['mc'])
 
     # Create the file and write the first line
+    if not os.path.exists(cfg['output']['dir']):
+        os.makedirs(cfg['output']['dir'])
     with open(f"{cfg['output']['dir']}/failed_fits.txt", "w") as file:
         file.write("Failed fit configurations\n")
 
