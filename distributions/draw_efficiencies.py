@@ -106,24 +106,27 @@ def draw_plots(input_folder):
         df_neg_pi[col] = df_neg_pi[col].apply(convert_to_interval) 
         df_pos_pi[col] = df_pos_pi[col].apply(convert_to_interval)
 
-    occ_bins = [0, 4000, 6000, 8000, 100000]
-    labels = [f'{occ_min} < Occupancy < {occ_max}' for occ_min, occ_max in zip(occ_bins[:-1], occ_bins[1:])]
+    class_var = 'fOccupancyFt0c'
+    class_var_name = 'occupancy'
+    bins = [0, 20000, 40000, 99999999]
+    labels = [f'{min} < {class_var_name} < {max}' for min, max in zip(bins[:-1], bins[1:])]
 
-    occ_dfs_pos_pi_mc = [df_pos_pi_mc.query(f'fOccupancyFt0c == @pd.Interval({occ_min}, {occ_max}, closed="left")').reset_index(drop=True) for occ_min, occ_max in zip(occ_bins[:-1], occ_bins[1:])]
-    occ_dfs_pos_pi = [df_pos_pi.query(f'fOccupancyFt0c == @pd.Interval({occ_min}, {occ_max}, closed="left")').reset_index(drop=True) for occ_min, occ_max in zip(occ_bins[:-1], occ_bins[1:])]
-    occ_dfs_neg_pi_mc = [df_neg_pi_mc.query(f'fOccupancyFt0c == @pd.Interval({occ_min}, {occ_max}, closed="left")').reset_index(drop=True) for occ_min, occ_max in zip(occ_bins[:-1], occ_bins[1:])]
-    occ_dfs_neg_pi = [df_neg_pi.query(f'fOccupancyFt0c == @pd.Interval({occ_min}, {occ_max}, closed="left")').reset_index(drop=True) for occ_min, occ_max in zip(occ_bins[:-1], occ_bins[1:])]
+    dfs_pos_pi_mc = [df_pos_pi_mc.query(f'{class_var} == @pd.Interval({min}, {max}, closed="left")').reset_index(drop=True) for min, max in zip(bins[:-1], bins[1:])]
+    dfs_pos_pi = [df_pos_pi.query(f'{class_var} == @pd.Interval({min}, {max}, closed="left")').reset_index(drop=True) for min, max in zip(bins[:-1], bins[1:])]
+    dfs_neg_pi_mc = [df_neg_pi_mc.query(f'{class_var} == @pd.Interval({min}, {max}, closed="left")').reset_index(drop=True) for min, max in zip(bins[:-1], bins[1:])]
+    dfs_neg_pi = [df_neg_pi.query(f'{class_var} == @pd.Interval({min}, {max}, closed="left")').reset_index(drop=True) for min, max in zip(bins[:-1], bins[1:])]
     
     if not os.path.exists(f"{input_folder}/figures/efficiencies"):
         os.makedirs(f"{input_folder}/figures/efficiencies")
 
-    fig = draw_efficiencies(occ_dfs_neg_pi, occ_dfs_neg_pi_mc, 'fPt', 'fNSigmaTpcNegPi', labels)
+    diff_var = 'fPt'
+    fig = draw_efficiencies(dfs_neg_pi, dfs_neg_pi_mc, diff_var, 'fNSigmaTpcNegPi', labels)
     fig.savefig(f"{input_folder}/figures/efficiencies/tpc_neg_pi_pt.png", bbox_inches='tight')
-    fig = draw_efficiencies(occ_dfs_pos_pi, occ_dfs_pos_pi_mc, 'fPt', 'fNSigmaTpcPosPi', labels)
+    fig = draw_efficiencies(dfs_pos_pi, dfs_pos_pi_mc, diff_var, 'fNSigmaTpcPosPi', labels)
     fig.savefig(f"{input_folder}/figures/efficiencies/tpc_pos_pi_pt.png", bbox_inches='tight')
-    fig = draw_efficiencies(occ_dfs_neg_pi, occ_dfs_neg_pi_mc, 'fPt', 'fNSigmaTofNegPi', labels)
+    fig = draw_efficiencies(dfs_neg_pi, dfs_neg_pi_mc, diff_var, 'fNSigmaTofNegPi', labels)
     fig.savefig(f"{input_folder}/figures/efficiencies/tof_neg_pi_pt.png", bbox_inches='tight')
-    fig = draw_efficiencies(occ_dfs_pos_pi, occ_dfs_pos_pi_mc, 'fPt', 'fNSigmaTofPosPi', labels)
+    fig = draw_efficiencies(dfs_pos_pi, dfs_pos_pi_mc, diff_var, 'fNSigmaTofPosPi', labels)
     fig.savefig(f"{input_folder}/figures/efficiencies/tof_pos_pi_pt.png", bbox_inches='tight')
 
 if __name__ == '__main__':

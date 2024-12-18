@@ -18,6 +18,9 @@ ROOT.gROOT.SetBatch(True)
 
 def get_distribution_mean_sigma(df, var):
     df = df.query(f"abs({var}) < 5")
+    if len(df) == 0:
+        print(f"No dataframe entries left when cutting abs({var}) < 5")
+        return 0., 0.
     if "w_splot" in df.columns and sum(df['w_splot'])>0:
         mean = np.average(df[var], weights=df['w_splot'])
         sigma = np.sqrt(np.average((df[var] - mean)**2, weights=df['w_splot']))
@@ -40,12 +43,14 @@ def fit_mass(df, suffix, pt_min, pt_max, sel, cfg, sub_dir, sel_vars):
         fitter.set_signal_initpar(0, "mu", cfg["fit_config"]["mean"])
         fitter.set_signal_initpar(0, "sigma", cfg["fit_config"]["sigma"])
         if sgn_func[0] == "doublecb":
-            fitter.set_signal_initpar(0, "alphal", cfg["fit_config"]["alphal"], limits=[1, 10])
-            fitter.set_signal_initpar(0, "alphar", cfg["fit_config"]["alphar"], limits=[1, 10])
-            fitter.set_signal_initpar(0, "nl", cfg["fit_config"]["nl"], limits=[1, 30])
-            fitter.set_signal_initpar(0, "nr", cfg["fit_config"]["nr"], limits=[1, 30])
+            fitter.set_signal_initpar(0, "alphal", cfg["fit_config"]["alphal"], limits=[0.5, 10])
+            fitter.set_signal_initpar(0, "alphar", cfg["fit_config"]["alphar"], limits=[0.5, 10])
+            fitter.set_signal_initpar(0, "nl", cfg["fit_config"]["nl"], limits=[0.5, 30])
+            fitter.set_signal_initpar(0, "nr", cfg["fit_config"]["nr"], limits=[0.5, 30])
         #fitter.set_background_initpar(0, "c1", -0.001)
-
+        if bkg_func[0] == "chebpol1":
+            fitter.set_background_initpar(0, "c0", cfg["fit_config"]["c0"]) # fix=True)
+            fitter.set_background_initpar(0, "c1", cfg["fit_config"]["c1"]) # fix=True)
         # Fit the data
         fit_res = fitter.mass_zfit()
     except:
@@ -58,15 +63,14 @@ def fit_mass(df, suffix, pt_min, pt_max, sel, cfg, sub_dir, sel_vars):
             fitter.set_signal_initpar(0, "nl", cfg["fit_config"]["nl"], limits=[1, 30])
             fitter.set_signal_initpar(0, "nr", cfg["fit_config"]["nr"], limits=[1, 30])
         #fitter.set_background_initpar(0, "c1", -0.001)
-
         # Fit the data
         fit_res = fitter.mass_zfit()
-        
+    
     if fit_res.valid == 0:
         with open(f"{cfg['output']['dir']}/failed_fits.txt", "a") as f:
             f.write(f"{fitter_name}\n")
             print(f"Fit failed for {fitter_name}")
-    
+
     loc = ["lower left", "upper left"]
     if cfg["mother_mass_var_name"] == "fMassK0":
         ax_title = r"$M(\mathrm{\pi\pi})$ GeV$/c^2$"
@@ -83,7 +87,8 @@ def fit_mass(df, suffix, pt_min, pt_max, sel, cfg, sub_dir, sel_vars):
         style="ATLAS",
         show_extra_info = fitter._name_background_pdf_[0] != "nobkg" and fitter.get_background()[1] != 0,
         figsize=(8, 8), extra_info_loc=loc,
-        axis_title=ax_title
+        axis_title=ax_title,
+        logy=True
     )
 
     output_dir = os.path.join(cfg['output']['dir'], f'{sub_dir}/{pt_min*10:.0f}_{pt_max*10:.0f}')
@@ -126,8 +131,12 @@ def get_efficiency(dfs, var):
         effs.append([])
         effs_unc.append([])
         for nsigma in [3, 2, 1]:
-            n_sel = len(df.query(f'abs({var}) < {nsigma}'))
-            n_total = len(df.query(f'{var} > -900'))
+            if "w_splot" in df.columns and sum(df['w_splot'])>0:
+                n_sel = np.sum(df.query(f'abs({var}) < {nsigma}')[var] * df.query(f'abs({var}) < {nsigma}')['w_splot'])
+                n_total = np.sum(df.query(f'abs({var}) < 5')[var] * df.query(f'abs({var}) < 5')['w_splot'])
+            else:
+                n_sel = len(df.query(f'abs({var}) < {nsigma}'))
+                n_total = len(df.query(f'abs({var}) < 5'))
             eff = n_sel / n_total if n_total > 0 else 0
             eff_unc = np.sqrt(eff * (1 - eff) / n_total) if n_total > 0 else 0
             effs[-1].append(eff)
@@ -155,13 +164,17 @@ def run_pt_bin(pt_min, pt_max, cfg, out_daudir, dau_axis_pt, selection, data_df,
     
     df_data_pt = data_df.query(dau_pt_sel)
     df_mc_pt = mc_df.query(dau_pt_sel)
-
+    
     eff_df_row = [*eff_df_sel_row] + [f"[{pt_min}, {pt_max})"]
     eff_df_mc_row = [*eff_df_sel_row] + [f"[{pt_min}, {pt_max})"]
 
     fitter, fit_valid = fit_mass(df_data_pt, 'data', pt_min, pt_max, sel, cfg, out_daudir, sel_var)
 
     if fit_valid == 1:
+        if fitter._name_background_pdf_[0] != "nobkg" and not np.isclose(fitter.get_background()[0], 0, atol=1):
+            df_data_pt = df_data_pt.copy()
+            df_data_pt.loc[:, 'w_splot'] = fitter.get_sweights()['signal']
+        
         for var in cfg["variables_to_plot"]:
             effs, effs_uncs = get_efficiency([df_data_pt, df_mc_pt], var)
             eff_df_row = eff_df_row + [effs[0]] + [effs_uncs[0]]
@@ -171,16 +184,20 @@ def run_pt_bin(pt_min, pt_max, cfg, out_daudir, dau_axis_pt, selection, data_df,
             draw_correlation_pt(df_data_pt, 'data', pt_min, pt_max, cfg, out_daudir)
             draw_correlation_pt(df_mc_pt, 'mc', pt_min, pt_max, cfg, out_daudir)
 
-        if fitter._name_background_pdf_[0] != "nobkg" and not np.isclose(fitter.get_background()[0], 0, atol=1):
-            df_data_pt = df_data_pt.copy()
-            df_data_pt.loc[:, 'w_splot'] = fitter.get_sweights()['signal']
-        
         draw_pid_distributions([df_data_pt, df_mc_pt], cfg, ['data', 'mc'], pt_min, pt_max, out_daudir)
         for var in cfg['variables_to_plot']:
             mean_data, sigma_data = get_distribution_mean_sigma(df_data_pt, var)
             mean_mc, sigma_mc = get_distribution_mean_sigma(df_mc_pt, var)
             eff_df_row = eff_df_row + [mean_data, sigma_data]
             eff_df_mc_row = eff_df_mc_row + [mean_mc, sigma_mc]
+    else:
+        for var in cfg["variables_to_plot"]:
+            eff_df_row = eff_df_row + [[0,0,0]] + [[0,0,0]]
+            eff_df_mc_row = eff_df_mc_row + [[0,0,0]] + [[0,0,0]]
+
+        for var in cfg['variables_to_plot']:
+            eff_df_row = eff_df_row + [0, 0]
+            eff_df_mc_row = eff_df_mc_row + [0, 0] 
 
     return eff_df_row, eff_df_mc_row, fit_valid
 
@@ -239,9 +256,8 @@ def draw_distributions(cfg_file_name):
 
         for result, dau in results:
             eff, eff_mc, fit_valid = result.result()
-            if fit_valid == 1:
-                eff_dfs[dau].append(eff)
-                eff_dfs_mc[dau].append(eff_mc)
+            eff_dfs[dau].append(eff)
+            eff_dfs_mc[dau].append(eff_mc)
 
     for dau in cfg['dau_names']:
         eff_df = pd.DataFrame(eff_dfs[dau], columns=eff_df_cols)
