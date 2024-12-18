@@ -132,8 +132,8 @@ def get_efficiency(dfs, var):
         effs_unc.append([])
         for nsigma in [3, 2, 1]:
             if "w_splot" in df.columns and sum(df['w_splot'])>0:
-                n_sel = np.sum(df.query(f'abs({var}) < {nsigma}')[var] * df.query(f'abs({var}) < {nsigma}')['w_splot'])
-                n_total = np.sum(df.query(f'abs({var}) < 5')[var] * df.query(f'abs({var}) < 5')['w_splot'])
+                n_sel = np.sum(df.query(f'abs({var}) < {nsigma}')['w_splot'])
+                n_total = np.sum(df.query(f'abs({var}) < 5')['w_splot'])
             else:
                 n_sel = len(df.query(f'abs({var}) < {nsigma}'))
                 n_total = len(df.query(f'abs({var}) < 5'))
