@@ -26,14 +26,14 @@ def get_distribution_mean_sigma(df, var):
         sigma = df[var].std()
     return mean, sigma
 
-def fit_mass(df, suffix, pt_min, pt_max, sel, cfg, sub_dir):
+def fit_mass(df, suffix, pt_min, pt_max, sel, cfg, sub_dir, sel_vars):
     # Create the data handler
     data_handler = DataHandler(df, cfg["mother_mass_var_name"])
     sgn_func = [cfg["fit_config"]["sgn_func"]] if cfg["fit_config"].get('sgn_func') else ["doublecb"]
     bkg_func = [cfg["fit_config"]["bkg_func"]] if cfg["fit_config"].get('bkg_func') else ["nobkg"]
-    fitter_name = f"{sub_dir.split('/')[0]}_{suffix}_{pt_min*10:.0f}_{pt_max*10:.0f}"
-    for range in sel:
-        fitter_name += f"_{range[0]}_{range[1]}"
+    fitter_name = f"{sub_dir.split('/')[0]}_{suffix}_pt_{pt_min*10:.0f}_{pt_max*10:.0f}"
+    for range, range_name in zip(sel, sel_vars):
+        fitter_name += f"_{range_name}_{range[0]}_{range[1]}"
         
     try:
         fitter = F2MassFitter(data_handler, sgn_func, bkg_func, verbosity=0, name=fitter_name)
@@ -62,11 +62,11 @@ def fit_mass(df, suffix, pt_min, pt_max, sel, cfg, sub_dir):
         # Fit the data
         fit_res = fitter.mass_zfit()
     
-    if fit_res.status != 0:
+    if fit_res.valid == 0:
         with open(f"{cfg['output']['dir']}/failed_fits.txt", "a") as f:
             f.write(f"{fitter_name}\n")
             print(f"Fit failed for {fitter_name}")
-        return fitter, fit_res.status
+        return fitter, fit_res.valid
 
     loc = ["lower left", "upper left"]
     if cfg["mother_mass_var_name"] == "fMassK0":
@@ -97,7 +97,7 @@ def fit_mass(df, suffix, pt_min, pt_max, sel, cfg, sub_dir):
         ),
         dpi=300, bbox_inches="tight"
     )
-    return fitter, fit_res.status
+    return fitter, fit_res.valid
 
 def draw_pid_distributions(dfs, cfg, labels, pt_min, pt_max, sub_dir):
     for var in cfg['variables_to_plot']:
@@ -150,7 +150,7 @@ def get_selections(cfg):
     
     return selection_vars, ev_sels
 
-def run_pt_bin(pt_min, pt_max, cfg, out_daudir, dau_axis_pt, selection, data_df, mc_df, eff_df_sel_row, sel):
+def run_pt_bin(pt_min, pt_max, cfg, out_daudir, dau_axis_pt, selection, data_df, mc_df, eff_df_sel_row, sel, sel_var):
     dau_pt_sel = selection + f'{pt_min} < {dau_axis_pt} < {pt_max}'
     
     df_data_pt = data_df.query(dau_pt_sel)
@@ -159,9 +159,9 @@ def run_pt_bin(pt_min, pt_max, cfg, out_daudir, dau_axis_pt, selection, data_df,
     eff_df_row = [*eff_df_sel_row] + [f"[{pt_min}, {pt_max})"]
     eff_df_mc_row = [*eff_df_sel_row] + [f"[{pt_min}, {pt_max})"]
 
-    fitter, fit_status = fit_mass(df_data_pt, 'data', pt_min, pt_max, sel, cfg, out_daudir)
+    fitter, fit_valid = fit_mass(df_data_pt, 'data', pt_min, pt_max, sel, cfg, out_daudir, sel_var)
 
-    if fit_status == 0:
+    if fit_valid == 1:
         for var in cfg["variables_to_plot"]:
             effs, effs_uncs = get_efficiency([df_data_pt, df_mc_pt], var)
             eff_df_row = eff_df_row + [effs[0]] + [effs_uncs[0]]
@@ -187,7 +187,7 @@ def run_pt_bin(pt_min, pt_max, cfg, out_daudir, dau_axis_pt, selection, data_df,
                 mean_mc, sigma_mc = get_distribution_mean_sigma(df_mc_pt, var)
                 eff_df_row = eff_df_row + [mean_data, sigma_data]
                 eff_df_mc_row = eff_df_mc_row + [mean_mc, sigma_mc]
-    return eff_df_row, eff_df_mc_row, fit_status
+    return eff_df_row, eff_df_mc_row, fit_valid
 
 def draw_distributions(cfg_file_name):
     # Read the configuration file
@@ -215,6 +215,10 @@ def draw_distributions(cfg_file_name):
     data_df = pd.read_parquet(cfg['inputs']['data'])
     mc_df = pd.read_parquet(cfg['inputs']['mc'])
 
+    # Create the file and write the first line
+    with open(f"{cfg['output']['dir']}/failed_fits.txt", "w") as file:
+        file.write("Failed fit configurations\n")
+
     for sel in ev_sels:
         selection = f"{cfg['mass_range'][0]} < {cfg['mother_mass_var_name']} < {cfg['mass_range'][1]} and "
         out_dir = ""
@@ -233,12 +237,12 @@ def draw_distributions(cfg_file_name):
                     print("*******************************")
                     print(f"CONFIG: {eff_df_sel_row}, {pt_min} < pt < {pt_max}")
                     print("*******************************")
-                    results.append((executor.submit(run_pt_bin, pt_min, pt_max, cfg, out_daudir, dau_axis_pt, selection, data_df, mc_df, eff_df_sel_row, sel), dau))
+                    results.append((executor.submit(run_pt_bin, pt_min, pt_max, cfg, out_daudir, dau_axis_pt, selection, data_df, mc_df, eff_df_sel_row, sel, selection_vars), dau))
                 # draw_efficiencies([data_df, mc_df], cfg, ['data', 'mc'], pt_bins, out_daudir)
 
         for result, dau in results:
-            eff, eff_mc, fit_status = result.result()
-            if fit_status == 0:
+            eff, eff_mc, fit_valid = result.result()
+            if fit_valid == 1:
                 eff_dfs[dau].append(eff)
                 eff_dfs_mc[dau].append(eff_mc)
 
