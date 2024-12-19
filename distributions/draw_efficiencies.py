@@ -58,8 +58,8 @@ def draw_efficiencies(dfs_data, dfs_mc, diff_col_name, eff_var, labels):
     for i_df, (df_data, df_mc, label) in enumerate(zip(sort_dfs_data, sort_dfs_mc, labels)):
         
         # data and MC leg entries side by side in overlap plots
-        data_marker = Line2D([0], [0], color=cmap(i_df * 2), marker='o', linestyle='None')
-        mc_marker = Line2D([0], [0], color=cmap(i_df * 2 + 1), marker='o', linestyle='None')
+        data_marker = Line2D([0], [0], color=cmap(i_df*2), marker='o', linestyle='None')
+        mc_marker = Line2D([0], [0], color=cmap(i_df*2+1), marker='o', linestyle='None')
         if 'legend_entries' not in locals():
             legend_entries = []
         legend_entries.append(((data_marker, mc_marker), f'{label} data (mc)'))

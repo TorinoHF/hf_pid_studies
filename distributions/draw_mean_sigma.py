@@ -4,6 +4,8 @@ import argparse
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
+from matplotlib.lines import Line2D
+from matplotlib.legend_handler import HandlerTuple
 
 def convert_to_interval(interval_str):
     match = re.match(r"(\[|\()(\d+(\.\d+)?),\s*(\d+(\.\d+)?)(\]|\))", interval_str)
@@ -34,13 +36,15 @@ def get_label(diff_col_name):
     if diff_col_name == "fCentralityFT0C" or diff_col_name == "fCentralityFT0M":
         return 'Centrality'
 
-def draw_means(dfs, diff_col_name, labels, eff_var):
+def draw_means(dfs, diff_col_name, class_col_name, labels, eff_var):
         
     sort_dfs = []
     for df in dfs:
         sort_dfs.append(sort_df_by_interval(df, diff_col_name))
     
     fig, axs = plt.subplots(1, 2, figsize=(12, 6))
+    fig.suptitle(f'{class_col_name} classes', fontsize=16)
+    fig.tight_layout(rect=[0, 0, 1, 0.96])
 
     lower_bin_bounds = sort_dfs[0][diff_col_name].apply(lambda x: x.left)
     upper_bin_bounds = sort_dfs[0][diff_col_name].apply(lambda x: x.right)
@@ -67,13 +71,15 @@ def draw_means(dfs, diff_col_name, labels, eff_var):
     axs[1].axhline(y=1, color='k', linestyle='--')
     return fig
 
-def draw_std(dfs, diff_col_name, labels, eff_var):
+def draw_std(dfs, diff_col_name, class_col_name, labels, eff_var):
         
     sort_dfs_data, sort_dfs = [], []
     for df in dfs:
         sort_dfs.append(sort_df_by_interval(df, diff_col_name))
     
     fig, axs = plt.subplots(1, 2, figsize=(12, 6))
+    fig.suptitle(f'{class_col_name} classes', fontsize=16)
+    fig.tight_layout(rect=[0, 0, 1, 0.96])
 
     lower_bin_bounds = sort_dfs[0][diff_col_name].apply(lambda x: x.left)
     upper_bin_bounds = sort_dfs[0][diff_col_name].apply(lambda x: x.right)
@@ -100,7 +106,7 @@ def draw_std(dfs, diff_col_name, labels, eff_var):
     axs[1].axhline(y=1, color='k', linestyle='--')
     return fig
 
-def draw_ratio_sigma_pos_neg(dfs_pos, dfs_neg, diff_col_name, labels, var_pos, var_neg, labels_df=["positive", "negative"]):
+def draw_ratio_sigma_pos_neg(dfs_pos, dfs_neg, diff_col_name, class_col_name, labels, var_pos, var_neg, labels_df=["positive", "negative"]):
     cmap = plt.get_cmap('tab20')
     sort_dfs_pos, sort_dfs_neg = [], []
     for df_pos in dfs_pos:
@@ -109,6 +115,8 @@ def draw_ratio_sigma_pos_neg(dfs_pos, dfs_neg, diff_col_name, labels, var_pos, v
         sort_dfs_neg.append(sort_df_by_interval(df_neg, diff_col_name))
     
     fig, axs = plt.subplots(1, 2, figsize=(12, 6))
+    fig.suptitle(f'{class_col_name} classes', fontsize=16)
+    fig.tight_layout(rect=[0, 0, 1, 0.96])
 
     lower_bin_bounds = sort_dfs_pos[0][diff_col_name].apply(lambda x: x.left)
     upper_bin_bounds = sort_dfs_pos[0][diff_col_name].apply(lambda x: x.right)
@@ -117,15 +125,30 @@ def draw_ratio_sigma_pos_neg(dfs_pos, dfs_neg, diff_col_name, labels, var_pos, v
     ticks = list(lower_bin_bounds) + [list(upper_bin_bounds)[-1]]
     axs[0].set_xticks(ticks)
     axs[0].set_xticklabels(ticks, rotation=45, ha='right')
+    if 'legend_entries' not in locals():
+        legend_entries = []
     for i_df, (df_pos, df_neg, label) in enumerate(zip(sort_dfs_pos, sort_dfs_neg, labels)):
+        # data and MC leg entries side by side in overlap plots
+        pos_marker = Line2D([0], [0], color=cmap(i_df * 2), marker='o', linestyle='None')
+        neg_marker = Line2D([0], [0], color=cmap(i_df * 2 + 1), marker='o', linestyle='None')
+        legend_entries.append(((pos_marker, neg_marker), f'{label}, {labels_df[0][:3]} ({labels_df[1][:3]})'))
+
         axs[0].errorbar(bin_centers, df_pos[f"{var_pos}_std"], c=cmap(i_df*2),
-                        xerr=bin_widths, label=f"{label}, {labels_df[0]}", fmt='p')
+                        xerr=bin_widths, fmt='p') # label=f"{label}, {labels_df[0]}")
         axs[0].errorbar(bin_centers, df_neg[f"{var_neg}_std"], c=cmap(i_df*2+1),
-                        xerr=bin_widths, label=f"{label}, {labels_df[1]}", fmt='p')
+                        xerr=bin_widths, fmt='p') # label=f"{label}, {labels_df[1]}")
     axs[0].set_xlabel(get_label(diff_col_name))
     detector = "TOF" if "Tof" in var_pos else "TPC"
     axs[0].set_ylabel(r'RMS N$\sigma^\pi_{' + detector + '}$')
-    axs[0].legend()
+
+    custom_legend = []
+    for markers, lbl in legend_entries:
+        custom_legend.append((markers, lbl))
+    # Add legend to the plot with HandlerTuple for side-by-side markers
+    axs[0].legend([entry[0] for entry in custom_legend], 
+                     [entry[1] for entry in custom_legend], 
+                     handler_map={tuple: HandlerTuple(ndivide=None)}, loc='best')
+
     axs[1].set_xticks(ticks)
     axs[1].set_xticklabels(ticks, rotation=45, ha='right')
     ratios = [np.array(df_pos[f"{var_pos}_std"]) / np.array(df_neg[f"{var_neg}_std"]) for df_pos, df_neg in zip(sort_dfs_pos, sort_dfs_neg)]
@@ -137,7 +160,7 @@ def draw_ratio_sigma_pos_neg(dfs_pos, dfs_neg, diff_col_name, labels, var_pos, v
     axs[1].axhline(y=1, color='k', linestyle='--')
     return fig
 
-def draw_ratio_mean_pos_neg(dfs_pos, dfs_neg, diff_col_name, labels, var_pos, var_neg, labels_df=["positive", "negative"]):
+def draw_ratio_mean_pos_neg(dfs_pos, dfs_neg, diff_col_name, class_col_name, labels, var_pos, var_neg, labels_df=["positive", "negative"]):
     cmap = plt.get_cmap('tab20')
     sort_dfs_pos, sort_dfs_neg = [], []
     for df_pos in dfs_pos:
@@ -146,7 +169,9 @@ def draw_ratio_mean_pos_neg(dfs_pos, dfs_neg, diff_col_name, labels, var_pos, va
         sort_dfs_neg.append(sort_df_by_interval(df_neg, diff_col_name))
     
     fig, axs = plt.subplots(1, 2, figsize=(12, 6))
-
+    fig.suptitle(f'{class_col_name} classes', fontsize=16)
+    fig.tight_layout(rect=[0, 0, 1, 0.96])
+    
     lower_bin_bounds = sort_dfs_pos[0][diff_col_name].apply(lambda x: x.left)
     upper_bin_bounds = sort_dfs_pos[0][diff_col_name].apply(lambda x: x.right)
     bin_centers = (np.array(lower_bin_bounds) + np.array(upper_bin_bounds)) / 2
@@ -154,15 +179,30 @@ def draw_ratio_mean_pos_neg(dfs_pos, dfs_neg, diff_col_name, labels, var_pos, va
     ticks = list(lower_bin_bounds) + [list(upper_bin_bounds)[-1]]
     axs[0].set_xticks(ticks)
     axs[0].set_xticklabels(ticks, rotation=45, ha='right')
+    if 'legend_entries' not in locals():
+        legend_entries = []
     for i_df, (df_pos, df_neg, label) in enumerate(zip(sort_dfs_pos, sort_dfs_neg, labels)):
+        # data and MC leg entries side by side in overlap plots
+        pos_marker = Line2D([0], [0], color=cmap(i_df * 2), marker='o', linestyle='None')
+        neg_marker = Line2D([0], [0], color=cmap(i_df * 2 + 1), marker='o', linestyle='None')
+        legend_entries.append(((pos_marker, neg_marker), f'{label}, {labels_df[0][:3]}({labels_df[1][:3]})'))
+        
         axs[0].errorbar(bin_centers, df_pos[f"{var_pos}_mean"], c=cmap(i_df*2),
-                        xerr=bin_widths, label=f"{label}, {labels_df[0]}", fmt='p')
+                        xerr=bin_widths, fmt='p') #, label=f"{label}, {labels_df[0]}")
         axs[0].errorbar(bin_centers, df_neg[f"{var_neg}_mean"], c=cmap(i_df*2+1),
-                        xerr=bin_widths, label=f"{label}, {labels_df[1]}", fmt='p')
+                        xerr=bin_widths, fmt='p') #, label=f"{label}, {labels_df[1]}")
     axs[0].set_xlabel(get_label(diff_col_name))
     detector = "TOF" if "Tof" in var_pos else "TPC"
     axs[0].set_ylabel(r'Mean N$\sigma^\pi_{' + detector + '}$')
-    axs[0].legend()
+    
+    custom_legend = []
+    for markers, lbl in legend_entries:
+        custom_legend.append((markers, lbl))
+    # Add legend to the plot with HandlerTuple for side-by-side markers
+    axs[0].legend([entry[0] for entry in custom_legend], 
+                     [entry[1] for entry in custom_legend], 
+                     handler_map={tuple: HandlerTuple(ndivide=None)}, loc='best')
+    
     axs[1].set_xticks(ticks)
     axs[1].set_xticklabels(ticks, rotation=45, ha='right')
     diffs = [np.array(df_pos[f"{var_pos}_mean"]) - np.array(df_neg[f"{var_neg}_mean"]) for df_pos, df_neg in zip(sort_dfs_pos, sort_dfs_neg)]
@@ -180,7 +220,7 @@ def draw_plots(input_folder):
     df_neg_pi = pd.read_parquet(f"{input_folder}/neg_pi_eff_df.parquet", engine="pyarrow") 
     df_pos_pi = pd.read_parquet(f"{input_folder}/pos_pi_eff_df.parquet", engine="pyarrow")
 
-    interval_cols = ['fOccupancyFt0c', 'fPt'] #, 'fCentralityFT0C']
+    interval_cols = ['fCentralityFT0C', 'fPt'] #, 'fCentralityFT0C']
 
     for col in interval_cols:
         df_neg_pi_mc[col] = df_neg_pi_mc[col].apply(convert_to_interval) 
@@ -188,11 +228,13 @@ def draw_plots(input_folder):
         df_neg_pi[col] = df_neg_pi[col].apply(convert_to_interval) 
         df_pos_pi[col] = df_pos_pi[col].apply(convert_to_interval)
 
-    class_var = 'fOccupancyFt0c'
-    class_var_name = 'occupancy'
-    bins = [0, 20000, 40000, 99999999] #, 60]
+    class_var = 'fCentralityFT0C'
+    class_var_name = 'cent'
+    bins = [0, 10, 20, 30, 40, 50, 60, 80, 100] #, 60]
     labels = [f'{min} < {class_var_name} < {max}' for min, max in zip(bins[:-1], bins[1:])]
-
+    labels_short = [f'{min}_{max}' for min, max in zip(bins[:-1], bins[1:])]
+    labels = labels_short
+    
     dfs_pos_pi_mc = [df_pos_pi_mc.query(f'{class_var} == @pd.Interval({min}, {max}, closed="left")').reset_index(drop=True) for min, max in zip(bins[:-1], bins[1:])]
     dfs_pos_pi = [df_pos_pi.query(f'{class_var} == @pd.Interval({min}, {max}, closed="left")').reset_index(drop=True) for min, max in zip(bins[:-1], bins[1:])]
     dfs_neg_pi_mc = [df_neg_pi_mc.query(f'{class_var} == @pd.Interval({min}, {max}, closed="left")').reset_index(drop=True) for min, max in zip(bins[:-1], bins[1:])]
@@ -216,75 +258,75 @@ def draw_plots(input_folder):
 
     diff_var = 'fPt'
     # Negative pion
-    fig = draw_means(dfs_neg_pi_mc, diff_var, labels, 'fNSigmaTpcNegPi')
+    fig = draw_means(dfs_neg_pi_mc, diff_var, class_var, labels, 'fNSigmaTpcNegPi')
     fig.savefig(f"{input_folder}/figures/negative_pion/mc/tpc_mean_pi_pt.png", bbox_inches='tight')
-    fig = draw_means(dfs_neg_pi_mc, diff_var, labels, 'fNSigmaTofNegPi')
+    fig = draw_means(dfs_neg_pi_mc, diff_var, class_var, labels, 'fNSigmaTofNegPi')
     fig.savefig(f"{input_folder}/figures/negative_pion/mc/tof_mean_pi_pt.png", bbox_inches='tight')
-    fig = draw_std(dfs_neg_pi_mc, diff_var, labels, 'fNSigmaTpcNegPi')
+    fig = draw_std(dfs_neg_pi_mc, diff_var, class_var, labels, 'fNSigmaTpcNegPi')
     fig.savefig(f"{input_folder}/figures/negative_pion/mc/tpc_rms_pi_pt.png", bbox_inches='tight')
-    fig = draw_std(dfs_neg_pi_mc, diff_var, labels, 'fNSigmaTofNegPi')
+    fig = draw_std(dfs_neg_pi_mc, diff_var, class_var, labels, 'fNSigmaTofNegPi')
     fig.savefig(f"{input_folder}/figures/negative_pion/mc/tof_rms_pi_pt.png", bbox_inches='tight')
-    fig = draw_means(dfs_neg_pi, diff_var, labels, 'fNSigmaTpcNegPi')
+    fig = draw_means(dfs_neg_pi, diff_var, class_var, labels, 'fNSigmaTpcNegPi')
     fig.savefig(f"{input_folder}/figures/negative_pion/data/tpc_mean_pi_pt.png", bbox_inches='tight')
-    fig = draw_means(dfs_neg_pi, diff_var, labels, 'fNSigmaTofNegPi')
+    fig = draw_means(dfs_neg_pi, diff_var, class_var, labels, 'fNSigmaTofNegPi')
     fig.savefig(f"{input_folder}/figures/negative_pion/data/tof_mean_pi_pt.png", bbox_inches='tight')
-    fig = draw_std(dfs_neg_pi, diff_var, labels, 'fNSigmaTpcNegPi')
+    fig = draw_std(dfs_neg_pi, diff_var, class_var, labels, 'fNSigmaTpcNegPi')
     fig.savefig(f"{input_folder}/figures/negative_pion/data/tpc_rms_pi_pt.png", bbox_inches='tight')
-    fig = draw_std(dfs_neg_pi, diff_var, labels, 'fNSigmaTofNegPi')
+    fig = draw_std(dfs_neg_pi, diff_var, class_var, labels, 'fNSigmaTofNegPi')
     fig.savefig(f"{input_folder}/figures/negative_pion/data/tof_rms_pi_pt.png", bbox_inches='tight')
 
     # Positive pion
-    fig = draw_means(dfs_pos_pi_mc, diff_var, labels, 'fNSigmaTpcPosPi')
+    fig = draw_means(dfs_pos_pi_mc, diff_var, class_var, labels, 'fNSigmaTpcPosPi')
     fig.savefig(f"{input_folder}/figures/positive_pion/mc/tpc_mean_pi_pt.png", bbox_inches='tight')
-    fig = draw_means(dfs_pos_pi_mc, diff_var, labels, 'fNSigmaTofPosPi')
+    fig = draw_means(dfs_pos_pi_mc, diff_var, class_var, labels, 'fNSigmaTofPosPi')
     fig.savefig(f"{input_folder}/figures/positive_pion/mc/tof_mean_pi_pt.png", bbox_inches='tight')
-    fig = draw_std(dfs_pos_pi_mc, diff_var, labels, 'fNSigmaTpcPosPi')
+    fig = draw_std(dfs_pos_pi_mc, diff_var, class_var, labels, 'fNSigmaTpcPosPi')
     fig.savefig(f"{input_folder}/figures/positive_pion/mc/tpc_rms_pi_pt.png", bbox_inches='tight')
-    fig = draw_std(dfs_pos_pi_mc, diff_var, labels, 'fNSigmaTofPosPi')
+    fig = draw_std(dfs_pos_pi_mc, diff_var, class_var, labels, 'fNSigmaTofPosPi')
     fig.savefig(f"{input_folder}/figures/positive_pion/mc/tof_rms_pi_pt.png", bbox_inches='tight')
-    fig = draw_means(dfs_pos_pi, diff_var, labels, 'fNSigmaTpcPosPi')
+    fig = draw_means(dfs_pos_pi, diff_var, class_var, labels, 'fNSigmaTpcPosPi')
     fig.savefig(f"{input_folder}/figures/positive_pion/data/tpc_mean_pi_pt.png", bbox_inches='tight')
-    fig = draw_means(dfs_pos_pi, diff_var, labels, 'fNSigmaTofPosPi')
+    fig = draw_means(dfs_pos_pi, diff_var, class_var, labels, 'fNSigmaTofPosPi')
     fig.savefig(f"{input_folder}/figures/positive_pion/data/tof_mean_pi_pt.png", bbox_inches='tight')
-    fig = draw_std(dfs_pos_pi, diff_var, labels, 'fNSigmaTpcPosPi')
+    fig = draw_std(dfs_pos_pi, diff_var, class_var, labels, 'fNSigmaTpcPosPi')
     fig.savefig(f"{input_folder}/figures/positive_pion/data/tpc_rms_pi_pt.png", bbox_inches='tight')
-    fig = draw_std(dfs_pos_pi, diff_var, labels, 'fNSigmaTofPosPi')
+    fig = draw_std(dfs_pos_pi, diff_var, class_var, labels, 'fNSigmaTofPosPi')
     fig.savefig(f"{input_folder}/figures/positive_pion/data/tof_rms_pi_pt.png", bbox_inches='tight')
 
     # Positive/Negative pion
-    fig = draw_ratio_mean_pos_neg(dfs_pos_pi_mc, dfs_neg_pi_mc, diff_var, labels, 'fNSigmaTofPosPi', 'fNSigmaTofNegPi')
+    fig = draw_ratio_mean_pos_neg(dfs_pos_pi_mc, dfs_neg_pi_mc, diff_var, class_var, labels, 'fNSigmaTofPosPi', 'fNSigmaTofNegPi')
     fig.savefig(f"{input_folder}/figures/positive_negative/mc/tof_mean_pi_pt.png", bbox_inches='tight')
-    fig = draw_ratio_mean_pos_neg(dfs_pos_pi_mc, dfs_neg_pi_mc, diff_var, labels, 'fNSigmaTpcPosPi', 'fNSigmaTpcNegPi')
+    fig = draw_ratio_mean_pos_neg(dfs_pos_pi_mc, dfs_neg_pi_mc, diff_var, class_var, labels, 'fNSigmaTpcPosPi', 'fNSigmaTpcNegPi')
     fig.savefig(f"{input_folder}/figures/positive_negative/mc/tpc_mean_pi_pt.png", bbox_inches='tight')
-    fig = draw_ratio_mean_pos_neg(dfs_pos_pi, dfs_neg_pi, diff_var, labels, 'fNSigmaTofPosPi', 'fNSigmaTofNegPi')
+    fig = draw_ratio_mean_pos_neg(dfs_pos_pi, dfs_neg_pi, diff_var, class_var, labels, 'fNSigmaTofPosPi', 'fNSigmaTofNegPi')
     fig.savefig(f"{input_folder}/figures/positive_negative/data/tof_mean_pi_pt.png", bbox_inches='tight')
-    fig = draw_ratio_mean_pos_neg(dfs_pos_pi, dfs_neg_pi, diff_var, labels, 'fNSigmaTpcPosPi', 'fNSigmaTpcNegPi')
+    fig = draw_ratio_mean_pos_neg(dfs_pos_pi, dfs_neg_pi, diff_var, class_var, labels, 'fNSigmaTpcPosPi', 'fNSigmaTpcNegPi')
     fig.savefig(f"{input_folder}/figures/positive_negative/data/tpc_mean_pi_pt.png", bbox_inches='tight')
-    fig = draw_ratio_sigma_pos_neg(dfs_pos_pi_mc, dfs_neg_pi_mc, diff_var, labels, 'fNSigmaTofPosPi', 'fNSigmaTofNegPi')
+    fig = draw_ratio_sigma_pos_neg(dfs_pos_pi_mc, dfs_neg_pi_mc, diff_var, class_var, labels, 'fNSigmaTofPosPi', 'fNSigmaTofNegPi')
     fig.savefig(f"{input_folder}/figures/positive_negative/mc/tof_rms_pi_pt.png", bbox_inches='tight')
-    fig = draw_ratio_sigma_pos_neg(dfs_pos_pi_mc, dfs_neg_pi_mc, diff_var, labels, 'fNSigmaTpcPosPi', 'fNSigmaTpcNegPi')
+    fig = draw_ratio_sigma_pos_neg(dfs_pos_pi_mc, dfs_neg_pi_mc, diff_var, class_var, labels, 'fNSigmaTpcPosPi', 'fNSigmaTpcNegPi')
     fig.savefig(f"{input_folder}/figures/positive_negative/mc/tpc_rms_pi_pt.png", bbox_inches='tight')
-    fig = draw_ratio_sigma_pos_neg(dfs_pos_pi, dfs_neg_pi, diff_var, labels, 'fNSigmaTofPosPi', 'fNSigmaTofNegPi')
+    fig = draw_ratio_sigma_pos_neg(dfs_pos_pi, dfs_neg_pi, diff_var, class_var, labels, 'fNSigmaTofPosPi', 'fNSigmaTofNegPi')
     fig.savefig(f"{input_folder}/figures/positive_negative/data/tof_rms_pi_pt.png", bbox_inches='tight')
-    fig = draw_ratio_sigma_pos_neg(dfs_pos_pi, dfs_neg_pi, diff_var, labels, 'fNSigmaTpcPosPi', 'fNSigmaTpcNegPi')
+    fig = draw_ratio_sigma_pos_neg(dfs_pos_pi, dfs_neg_pi, diff_var, class_var, labels, 'fNSigmaTpcPosPi', 'fNSigmaTpcNegPi')
     fig.savefig(f"{input_folder}/figures/positive_negative/data/tpc_rms_pi_pt.png", bbox_inches='tight')
 
     # Data/MC
-    fig = draw_ratio_mean_pos_neg(dfs_pos_pi, dfs_pos_pi_mc, diff_var, labels, 'fNSigmaTofPosPi', 'fNSigmaTofPosPi', labels_df=["Data", "MC"])
+    fig = draw_ratio_mean_pos_neg(dfs_pos_pi, dfs_pos_pi_mc, diff_var, class_var, labels, 'fNSigmaTofPosPi', 'fNSigmaTofPosPi', labels_df=["Data", "MC"])
     fig.savefig(f"{input_folder}/figures/data_mc/positive/tof_mean_pi_pt.png", bbox_inches='tight')
-    fig = draw_ratio_mean_pos_neg(dfs_pos_pi, dfs_pos_pi_mc, diff_var, labels, 'fNSigmaTpcPosPi', 'fNSigmaTpcPosPi', labels_df=["Data", "MC"])
+    fig = draw_ratio_mean_pos_neg(dfs_pos_pi, dfs_pos_pi_mc, diff_var, class_var, labels, 'fNSigmaTpcPosPi', 'fNSigmaTpcPosPi', labels_df=["Data", "MC"])
     fig.savefig(f"{input_folder}/figures/data_mc/positive/tpc_mean_pi_pt.png", bbox_inches='tight')
-    fig = draw_ratio_sigma_pos_neg(dfs_pos_pi, dfs_pos_pi_mc, diff_var, labels, 'fNSigmaTofPosPi', 'fNSigmaTofPosPi', labels_df=["Data", "MC"])
+    fig = draw_ratio_sigma_pos_neg(dfs_pos_pi, dfs_pos_pi_mc, diff_var, class_var, labels, 'fNSigmaTofPosPi', 'fNSigmaTofPosPi', labels_df=["Data", "MC"])
     fig.savefig(f"{input_folder}/figures/data_mc/positive/tof_rms_pi_pt.png", bbox_inches='tight')
-    fig = draw_ratio_sigma_pos_neg(dfs_pos_pi, dfs_pos_pi_mc, diff_var, labels, 'fNSigmaTpcPosPi', 'fNSigmaTpcPosPi', labels_df=["Data", "MC"])
+    fig = draw_ratio_sigma_pos_neg(dfs_pos_pi, dfs_pos_pi_mc, diff_var, class_var, labels, 'fNSigmaTpcPosPi', 'fNSigmaTpcPosPi', labels_df=["Data", "MC"])
     fig.savefig(f"{input_folder}/figures/data_mc/positive/tpc_rms_pi_pt.png", bbox_inches='tight')
-    fig = draw_ratio_mean_pos_neg(dfs_neg_pi, dfs_neg_pi_mc, diff_var, labels, 'fNSigmaTofNegPi', 'fNSigmaTofNegPi', labels_df=["Data", "MC"])
+    fig = draw_ratio_mean_pos_neg(dfs_neg_pi, dfs_neg_pi_mc, diff_var, class_var, labels, 'fNSigmaTofNegPi', 'fNSigmaTofNegPi', labels_df=["Data", "MC"])
     fig.savefig(f"{input_folder}/figures/data_mc/negative/tof_mean_pi_pt.png", bbox_inches='tight')
-    fig = draw_ratio_mean_pos_neg(dfs_neg_pi, dfs_neg_pi_mc, diff_var, labels, 'fNSigmaTpcNegPi', 'fNSigmaTpcNegPi', labels_df=["Data", "MC"])
+    fig = draw_ratio_mean_pos_neg(dfs_neg_pi, dfs_neg_pi_mc, diff_var, class_var, labels, 'fNSigmaTpcNegPi', 'fNSigmaTpcNegPi', labels_df=["Data", "MC"])
     fig.savefig(f"{input_folder}/figures/data_mc/negative/tpc_mean_pi_pt.png", bbox_inches='tight')
-    fig = draw_ratio_sigma_pos_neg(dfs_neg_pi, dfs_neg_pi_mc, diff_var, labels, 'fNSigmaTofNegPi', 'fNSigmaTofNegPi', labels_df=["Data", "MC"])
+    fig = draw_ratio_sigma_pos_neg(dfs_neg_pi, dfs_neg_pi_mc, diff_var, class_var, labels, 'fNSigmaTofNegPi', 'fNSigmaTofNegPi', labels_df=["Data", "MC"])
     fig.savefig(f"{input_folder}/figures/data_mc/negative/tof_rms_pi_pt.png", bbox_inches='tight')
-    fig = draw_ratio_sigma_pos_neg(dfs_neg_pi, dfs_neg_pi_mc, diff_var, labels, 'fNSigmaTpcNegPi', 'fNSigmaTpcNegPi', labels_df=["Data", "MC"])
+    fig = draw_ratio_sigma_pos_neg(dfs_neg_pi, dfs_neg_pi_mc, diff_var, class_var, labels, 'fNSigmaTpcNegPi', 'fNSigmaTpcNegPi', labels_df=["Data", "MC"])
     fig.savefig(f"{input_folder}/figures/data_mc/negative/tpc_rms_pi_pt.png", bbox_inches='tight')
 
 if __name__ == '__main__':
