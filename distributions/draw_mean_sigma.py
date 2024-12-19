@@ -44,7 +44,7 @@ def draw_means(dfs, diff_col_name, class_col_name, labels, eff_var):
     
     fig, axs = plt.subplots(1, 2, figsize=(12, 6))
     fig.suptitle(f'{class_col_name} classes', fontsize=16)
-    fig.tight_layout(rect=[0, 0, 1, 0.96])
+    # fig.tight_layout(rect=[0, 0, 1, 0.96])
 
     lower_bin_bounds = sort_dfs[0][diff_col_name].apply(lambda x: x.left)
     upper_bin_bounds = sort_dfs[0][diff_col_name].apply(lambda x: x.right)
@@ -79,7 +79,7 @@ def draw_std(dfs, diff_col_name, class_col_name, labels, eff_var):
     
     fig, axs = plt.subplots(1, 2, figsize=(12, 6))
     fig.suptitle(f'{class_col_name} classes', fontsize=16)
-    fig.tight_layout(rect=[0, 0, 1, 0.96])
+    # fig.tight_layout(rect=[0, 0, 1, 0.96])
 
     lower_bin_bounds = sort_dfs[0][diff_col_name].apply(lambda x: x.left)
     upper_bin_bounds = sort_dfs[0][diff_col_name].apply(lambda x: x.right)
@@ -116,7 +116,7 @@ def draw_ratio_sigma_pos_neg(dfs_pos, dfs_neg, diff_col_name, class_col_name, la
     
     fig, axs = plt.subplots(1, 2, figsize=(12, 6))
     fig.suptitle(f'{class_col_name} classes', fontsize=16)
-    fig.tight_layout(rect=[0, 0, 1, 0.96])
+    # fig.tight_layout(rect=[0, 0, 1, 0.96])
 
     lower_bin_bounds = sort_dfs_pos[0][diff_col_name].apply(lambda x: x.left)
     upper_bin_bounds = sort_dfs_pos[0][diff_col_name].apply(lambda x: x.right)
@@ -170,7 +170,7 @@ def draw_ratio_mean_pos_neg(dfs_pos, dfs_neg, diff_col_name, class_col_name, lab
     
     fig, axs = plt.subplots(1, 2, figsize=(12, 6))
     fig.suptitle(f'{class_col_name} classes', fontsize=16)
-    fig.tight_layout(rect=[0, 0, 1, 0.96])
+    # fig.tight_layout(rect=[0, 0, 1, 0.96])
     
     lower_bin_bounds = sort_dfs_pos[0][diff_col_name].apply(lambda x: x.left)
     upper_bin_bounds = sort_dfs_pos[0][diff_col_name].apply(lambda x: x.right)
