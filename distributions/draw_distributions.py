@@ -47,12 +47,13 @@ def fit_mass(df, suffix, pt_min, pt_max, sel, cfg, sub_dir, sel_vars):
             fitter.set_signal_initpar(0, "alphar", cfg["fit_config"]["alphar"], limits=[0.5, 10])
             fitter.set_signal_initpar(0, "nl", cfg["fit_config"]["nl"], limits=[0.5, 30])
             fitter.set_signal_initpar(0, "nr", cfg["fit_config"]["nr"], limits=[0.5, 30])
-        #fitter.set_background_initpar(0, "c1", -0.001)
         if bkg_func[0] == "chebpol1":
             fitter.set_background_initpar(0, "c0", cfg["fit_config"]["c0"]) # fix=True)
             fitter.set_background_initpar(0, "c1", cfg["fit_config"]["c1"]) # fix=True)
-        # Fit the data
+
         fit_res = fitter.mass_zfit()
+        sgn_sweights = fitter.get_sweights()['signal']
+
     except:
         fitter = F2MassFitter(data_handler, sgn_func, ["nobkg"], verbosity=0, name=fitter_name)
         fitter.set_signal_initpar(0, "mu", cfg["fit_config"]["mean"])
@@ -62,14 +63,18 @@ def fit_mass(df, suffix, pt_min, pt_max, sel, cfg, sub_dir, sel_vars):
             fitter.set_signal_initpar(0, "alphar", cfg["fit_config"]["alphar"], limits=[0.5, 10])
             fitter.set_signal_initpar(0, "nl", cfg["fit_config"]["nl"], limits=[1, 30])
             fitter.set_signal_initpar(0, "nr", cfg["fit_config"]["nr"], limits=[1, 30])
-        #fitter.set_background_initpar(0, "c1", -0.001)
-        # Fit the data
+
         fit_res = fitter.mass_zfit()
+        sgn_sweights = None
     
-    if fit_res.valid == 0:
-        with open(f"{cfg['output']['dir']}/failed_fits.txt", "a") as f:
-            f.write(f"{fitter_name}\n")
-            print(f"Fit failed for {fitter_name}")
+    with open(f"{cfg['output']['dir']}/failed_fits.txt", "a") as f:
+        computed_sweights = True if sgn_sweights is not None else False
+        f.write(
+                f"{fitter_name}: fit_res.valid -> {fit_res.valid}, "
+                f"fit_res.status -> {fit_res.status}, "
+                f"fit_res.converged -> {fit_res.converged}, "
+                f"sweights computed -> {computed_sweights} \n"
+               )
 
     loc = ["lower left", "upper left"]
     if cfg["mother_mass_var_name"] == "fMassK0":
@@ -102,7 +107,7 @@ def fit_mass(df, suffix, pt_min, pt_max, sel, cfg, sub_dir, sel_vars):
         dpi=300, bbox_inches="tight"
     )
 
-    return fitter, fit_res.valid
+    return fitter, sgn_sweights
 
 def draw_pid_distributions(dfs, cfg, labels, pt_min, pt_max, sub_dir):
     for var in cfg['variables_to_plot']:
@@ -168,13 +173,12 @@ def run_pt_bin(pt_min, pt_max, cfg, out_daudir, dau_axis_pt, selection, data_df,
     eff_df_row = [*eff_df_sel_row] + [f"[{pt_min}, {pt_max})"]
     eff_df_mc_row = [*eff_df_sel_row] + [f"[{pt_min}, {pt_max})"]
 
-    fitter, fit_valid = fit_mass(df_data_pt, 'data', pt_min, pt_max, sel, cfg, out_daudir, sel_var)
+    fitter, sgn_sweights = fit_mass(df_data_pt, 'data', pt_min, pt_max, sel, cfg, out_daudir, sel_var)
 
-    if fit_valid == 1:
-        if fitter._name_background_pdf_[0] != "nobkg" and not np.isclose(fitter.get_background()[0], 0, atol=1):
-            df_data_pt = df_data_pt.copy()
-            df_data_pt.loc[:, 'w_splot'] = fitter.get_sweights()['signal']
-        
+    if sgn_sweights is not None and not np.isclose(fitter.get_background()[0], 0, atol=1):
+        df_data_pt = df_data_pt.copy()
+        df_data_pt.loc[:, 'w_splot'] = sgn_sweights
+
         for var in cfg["variables_to_plot"]:
             effs, effs_uncs = get_efficiency([df_data_pt, df_mc_pt], var)
             eff_df_row = eff_df_row + [effs[0]] + [effs_uncs[0]]
@@ -199,7 +203,7 @@ def run_pt_bin(pt_min, pt_max, cfg, out_daudir, dau_axis_pt, selection, data_df,
             eff_df_row = eff_df_row + [0, 0]
             eff_df_mc_row = eff_df_mc_row + [0, 0] 
 
-    return eff_df_row, eff_df_mc_row, fit_valid
+    return eff_df_row, eff_df_mc_row
 
 def draw_distributions(cfg_file_name):
     # Read the configuration file
@@ -255,7 +259,7 @@ def draw_distributions(cfg_file_name):
                 # draw_efficiencies([data_df, mc_df], cfg, ['data', 'mc'], pt_bins, out_daudir)
 
         for result, dau in results:
-            eff, eff_mc, fit_valid = result.result()
+            eff, eff_mc = result.result()
             eff_dfs[dau].append(eff)
             eff_dfs_mc[dau].append(eff_mc)
 
