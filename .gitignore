@@ -2,8 +2,7 @@ datasets
 seldatasets
 distributions/distributions
 *.root
-
-*.root
+*.png
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

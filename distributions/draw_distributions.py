@@ -126,7 +126,7 @@ def get_efficiency(dfs, var):
         for nsigma in [3, 2, 1]:
             # print(f'NSIGMA {nsigma}')
             n_sel = len(df.query(f'abs({var}) < {nsigma}'))
-            n_total = len(df.query(f'{var} > -900'))
+            n_total = len(df.query(f'abs({var}) < 5'))
             eff = n_sel / n_total if n_total > 0 else 0
             eff_unc = np.sqrt(eff * (1 - eff) / n_total) if n_total > 0 else 0
             effs[-1].append(eff)
@@ -244,8 +244,8 @@ def draw_distributions(cfg_file_name):
     for dau in cfg['dau_names']:
         eff_df = pd.DataFrame(eff_dfs[dau], columns=eff_df_cols)
         eff_df_mc = pd.DataFrame(eff_dfs_mc[dau], columns=eff_df_cols)
-        eff_df.to_parquet(f"{cfg["output"]["dir"]}/{dau}_eff_df.parquet")
-        eff_df_mc.to_parquet(f"{cfg["output"]["dir"]}/{dau}_eff_df_mc.parquet")
+        eff_df.to_parquet(f"{cfg['output']['dir']}/{dau}_eff_df.parquet")
+        eff_df_mc.to_parquet(f"{cfg['output']['dir']}/{dau}_eff_df_mc.parquet")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Draw distributions')

@@ -56,7 +56,7 @@ for itree in selections_cfg['trees']:
         os.makedirs(f"{itree['outdir']}/data/")
     
     df_data.to_parquet(f"{itree['outdir']}/data/{df_data_basename}{suffix}.parquet")
-    print(f"Saved skimmed tree to: {f"{itree['outdir']}/data/{df_data_basename}{suffix}.parquet"}")
+    print(f"Saved skimmed tree to: {itree['outdir']}/data/{df_data_basename}{suffix}.parquet")
 
     if itree.get('treefilemc'):
         print(f"Loading data from {itree['treefilemc']}...")
@@ -68,4 +68,4 @@ for itree in selections_cfg['trees']:
             os.makedirs(f"{itree['outdir']}/mc/")
 
         df_mc.to_parquet(f"{itree['outdir']}/mc/{df_mc_basename}{suffix}.parquet")
-        print(f"Saved skimmed tree to: {f"{itree['outdir']}/mc/{df_mc_basename}{suffix}.parquet"}")
+        print(f"Saved skimmed tree to: {itree['outdir']}/mc/{df_mc_basename}{suffix}.parquet")
