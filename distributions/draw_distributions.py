@@ -175,9 +175,10 @@ def run_pt_bin(pt_min, pt_max, cfg, out_daudir, dau_axis_pt, selection, data_df,
 
     fitter, sgn_sweights = fit_mass(df_data_pt, 'data', pt_min, pt_max, sel, cfg, out_daudir, sel_var)
 
-    if sgn_sweights is not None and not np.isclose(fitter.get_background()[0], 0, atol=1):
+    if cfg['fit_config']['bkg_func'] == 'nobkg' or (sgn_sweights is not None and not np.isclose(fitter.get_background()[0], 0, atol=1)):
         df_data_pt = df_data_pt.copy()
-        df_data_pt.loc[:, 'w_splot'] = sgn_sweights
+        if sgn_sweights is not None:
+            df_data_pt.loc[:, 'w_splot'] = sgn_sweights
 
         for var in cfg["variables_to_plot"]:
             effs, effs_uncs = get_efficiency([df_data_pt, df_mc_pt], var)
