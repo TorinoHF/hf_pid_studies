@@ -17,9 +17,9 @@ from draw_correlations import draw_correlation_pt
 ROOT.gROOT.SetBatch(True)
 
 def get_distribution_mean_sigma(df, var):
-    df = df.query(f"abs({var}) < 5")
+    df = df.query(f"abs({var}) < 15")
     if len(df) == 0:
-        print(f"No dataframe entries left when cutting abs({var}) < 5")
+        print(f"No dataframe entries left when cutting abs({var}) < 15")
         return 0., 0.
     if "w_splot" in df.columns and sum(df['w_splot'])>0:
         mean = np.average(df[var], weights=df['w_splot'])
@@ -31,7 +31,7 @@ def get_distribution_mean_sigma(df, var):
 
 def fit_mass(df, suffix, pt_min, pt_max, sel, cfg, sub_dir, sel_vars):
     # Create the data handler
-    data_handler = DataHandler(df, cfg["mother_mass_var_name"])
+    data_handler = DataHandler(df, cfg["mother_mass_var_name"], limits=(min(df[cfg["mother_mass_var_name"]]), max(df[cfg["mother_mass_var_name"]])))
     sgn_func = [cfg["fit_config"]["sgn_func"]] if cfg["fit_config"].get('sgn_func') else ["doublecb"]
     bkg_func = [cfg["fit_config"]["bkg_func"]] if cfg["fit_config"].get('bkg_func') else ["nobkg"]
     fitter_name = f"{sub_dir.split('/')[0]}_{suffix}_pt_{pt_min*10:.0f}_{pt_max*10:.0f}"
@@ -52,7 +52,7 @@ def fit_mass(df, suffix, pt_min, pt_max, sel, cfg, sub_dir, sel_vars):
             fitter.set_background_initpar(0, "c1", cfg["fit_config"]["c1"]) # fix=True)
 
         fit_res = fitter.mass_zfit()
-        sgn_sweights = fitter.get_sweights()['signal']
+        sgn_sweights = fitter.get_sweights()['signal'] if bkg_func != ["nobkg"] else None
 
     except:
         fitter = F2MassFitter(data_handler, sgn_func, ["nobkg"], verbosity=0, name=fitter_name)
@@ -93,10 +93,10 @@ def fit_mass(df, suffix, pt_min, pt_max, sel, cfg, sub_dir, sel_vars):
         show_extra_info = fitter._name_background_pdf_[0] != "nobkg" and fitter.get_background()[1] != 0,
         figsize=(8, 8), extra_info_loc=loc,
         axis_title=ax_title,
-        logy=True
     )
 
     output_dir = os.path.join(cfg['output']['dir'], f'{sub_dir}/{pt_min*10:.0f}_{pt_max*10:.0f}')
+    print(f"Saving fit to: {output_dir}")
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     fig.savefig(
@@ -113,8 +113,8 @@ def draw_pid_distributions(dfs, cfg, labels, pt_min, pt_max, sub_dir):
     for var in cfg['variables_to_plot']:
         fig, ax = plt.subplots(1, 1, figsize=(12, 10))
         for df, label in zip(dfs, labels):
-            weight = df['w_splot'] if "w_splot" in df.columns else None
-            df[var].hist(bins=100, label=label, weights=weight, alpha=0.5, density=True, range=(-5,5))
+            weight = df['w_splot'] if "w_splot" in df.columns else [1]*len(df)
+            df[var].hist(bins=300, label=label, weights=weight, alpha=0.5, density=True, range=(-15,15))
         ax.set_xlabel(var)
         ax.set_ylabel('Entries')
         ax.legend()
@@ -138,10 +138,10 @@ def get_efficiency(dfs, var):
         for nsigma in [3, 2, 1]:
             if "w_splot" in df.columns and sum(df['w_splot'])>0:
                 n_sel = np.sum(df.query(f'abs({var}) < {nsigma}')['w_splot'])
-                n_total = np.sum(df.query(f'abs({var}) < 5')['w_splot'])
+                n_total = np.sum(df.query(f'abs({var}) < 15')['w_splot'])
             else:
                 n_sel = len(df.query(f'abs({var}) < {nsigma}'))
-                n_total = len(df.query(f'abs({var}) < 5'))
+                n_total = len(df.query(f'abs({var}) < 15'))
             eff = n_sel / n_total if n_total > 0 else 0
             eff_unc = np.sqrt(eff * (1 - eff) / n_total) if n_total > 0 else 0
             effs[-1].append(eff)
@@ -173,36 +173,27 @@ def run_pt_bin(pt_min, pt_max, cfg, out_daudir, dau_axis_pt, selection, data_df,
     eff_df_row = [*eff_df_sel_row] + [f"[{pt_min}, {pt_max})"]
     eff_df_mc_row = [*eff_df_sel_row] + [f"[{pt_min}, {pt_max})"]
 
-    fitter, sgn_sweights = fit_mass(df_data_pt, 'data', pt_min, pt_max, sel, cfg, out_daudir, sel_var)
+    _, sgn_sweights = fit_mass(df_data_pt, 'data', pt_min, pt_max, sel, cfg, out_daudir, sel_var)
 
-    if cfg['fit_config']['bkg_func'] == 'nobkg' or (sgn_sweights is not None and not np.isclose(fitter.get_background()[0], 0, atol=1)):
-        df_data_pt = df_data_pt.copy()
-        if sgn_sweights is not None:
-            df_data_pt.loc[:, 'w_splot'] = sgn_sweights
+    df_data_pt = df_data_pt.copy()
+    if sgn_sweights is not None:
+        df_data_pt.loc[:, 'w_splot'] = sgn_sweights
+    
+    for var in cfg["variables_to_plot"]:
+        effs, effs_uncs = get_efficiency([df_data_pt, df_mc_pt], var)
+        eff_df_row = eff_df_row + [effs[0]] + [effs_uncs[0]]
+        eff_df_mc_row = eff_df_mc_row + [effs[1]] + [effs_uncs[1]]
 
-        for var in cfg["variables_to_plot"]:
-            effs, effs_uncs = get_efficiency([df_data_pt, df_mc_pt], var)
-            eff_df_row = eff_df_row + [effs[0]] + [effs_uncs[0]]
-            eff_df_mc_row = eff_df_mc_row + [effs[1]] + [effs_uncs[1]]
+    if cfg.get('draw_corr'):
+        draw_correlation_pt(df_data_pt, 'data', pt_min, pt_max, cfg, out_daudir)
+        draw_correlation_pt(df_mc_pt, 'mc', pt_min, pt_max, cfg, out_daudir)
 
-        if cfg.get('draw_corr'):
-            draw_correlation_pt(df_data_pt, 'data', pt_min, pt_max, cfg, out_daudir)
-            draw_correlation_pt(df_mc_pt, 'mc', pt_min, pt_max, cfg, out_daudir)
-
-        draw_pid_distributions([df_data_pt, df_mc_pt], cfg, ['data', 'mc'], pt_min, pt_max, out_daudir)
-        for var in cfg['variables_to_plot']:
-            mean_data, sigma_data = get_distribution_mean_sigma(df_data_pt, var)
-            mean_mc, sigma_mc = get_distribution_mean_sigma(df_mc_pt, var)
-            eff_df_row = eff_df_row + [mean_data, sigma_data]
-            eff_df_mc_row = eff_df_mc_row + [mean_mc, sigma_mc]
-    else:
-        for var in cfg["variables_to_plot"]:
-            eff_df_row = eff_df_row + [[0,0,0]] + [[0,0,0]]
-            eff_df_mc_row = eff_df_mc_row + [[0,0,0]] + [[0,0,0]]
-
-        for var in cfg['variables_to_plot']:
-            eff_df_row = eff_df_row + [0, 0]
-            eff_df_mc_row = eff_df_mc_row + [0, 0] 
+    draw_pid_distributions([df_data_pt, df_mc_pt], cfg, ['data', 'mc'], pt_min, pt_max, out_daudir)
+    for var in cfg['variables_to_plot']:
+        mean_data, sigma_data = get_distribution_mean_sigma(df_data_pt, var)
+        mean_mc, sigma_mc = get_distribution_mean_sigma(df_mc_pt, var)
+        eff_df_row = eff_df_row + [mean_data, sigma_data]
+        eff_df_mc_row = eff_df_mc_row + [mean_mc, sigma_mc]
 
     return eff_df_row, eff_df_mc_row
 
