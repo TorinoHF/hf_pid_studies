@@ -128,7 +128,7 @@ def draw_means(dfs, xaxis_col_name, class_col_name, labels, eff_var):
     axs[0].set_xticks(ticks)
     axs[0].set_xticklabels(ticks, rotation=45, ha='right')
     for df, label in zip(sort_dfs, labels):
-        axs[0].errorbar(bin_centers, df[f"{eff_var}_mean"],
+        axs[0].errorbar(bin_centers, df[f"{eff_var}_mean"], yerr=df[f"{eff_var}_mean_unc"],
                         xerr=bin_widths, label=label, fmt='p')
     axs[0].set_xlabel(get_label(xaxis_col_name))
     detector = "TOF" if "Tof" in eff_var else "TPC"
@@ -137,8 +137,11 @@ def draw_means(dfs, xaxis_col_name, class_col_name, labels, eff_var):
     axs[1].set_xticks(ticks)
     axs[1].set_xticklabels(ticks, rotation=45, ha='right')
     ratios = [np.array(df[f"{eff_var}_mean"]) / np.array(sort_dfs[0][f"{eff_var}_mean"]) for df in sort_dfs[1:]]
-    for i_ratio, ratio in enumerate(ratios):
-        axs[1].errorbar(bin_centers, ratio, c=f'C{i_ratio+1}',
+    errs = [abs(ratio)*np.sqrt(
+        (np.array(df[f"{eff_var}_mean_unc"])/np.array(df[f"{eff_var}_mean"])) **2 +\
+            (np.array(sort_dfs[0][f"{eff_var}_mean_unc"])/np.array(sort_dfs[0][f"{eff_var}_mean"])) **2) for ratio, df in zip(ratios, sort_dfs[1:])]
+    for i_ratio, (ratio, unc) in enumerate(zip(ratios, errs)):
+        axs[1].errorbar(bin_centers, ratio, yerr=unc, c=f'C{i_ratio+1}',
                         xerr=bin_widths, label=label, fmt='p')
     axs[1].set_xlabel(get_label(xaxis_col_name))
     axs[1].set_ylabel(f'Ratio to {labels[0]}') 
@@ -172,8 +175,11 @@ def draw_std(dfs, xaxis_col_name, class_col_name, labels, eff_var):
     axs[1].set_xticks(ticks)
     axs[1].set_xticklabels(ticks, rotation=45, ha='right')
     ratios = [np.array(df[f"{eff_var}_std"]) / np.array(sort_dfs[0][f"{eff_var}_std"]) for df in sort_dfs[1:]]
-    for i_ratio, ratio in enumerate(ratios):
-        axs[1].errorbar(bin_centers, ratio, c=f'C{i_ratio+1}',
+    errs = [abs(ratio) * np.sqrt(
+        (np.array(df[f"{eff_var}_std_unc"])/np.array(df[f"{eff_var}_std"])) **2 +\
+            (np.array(sort_dfs[0][f"{eff_var}_std_unc"])/np.array(sort_dfs[0][f"{eff_var}_std"])) **2) for ratio, df in zip(ratios, sort_dfs[1:])]
+    for i_ratio, (ratio, unc) in enumerate(zip(ratios, errs)):
+        axs[1].errorbar(bin_centers, ratio, yerr=unc, c=f'C{i_ratio+1}',
                         xerr=bin_widths, label=label, fmt='p')
     axs[1].set_xlabel(get_label(xaxis_col_name))
     axs[1].set_ylabel(f'Ratio to {labels[0]}') 
@@ -207,9 +213,9 @@ def draw_ratio_sigma_pos_neg(dfs_pos, dfs_neg, xaxis_col_name, class_col_name, l
         neg_marker = Line2D([0], [0], color=cmap(i_df * 2 + 1), marker='o', linestyle='None')
         legend_entries.append(((pos_marker, neg_marker), f'{label}, {labels_df[0][:3]} ({labels_df[1][:3]})'))
 
-        axs[0].errorbar(bin_centers, df_pos[f"{var_pos}_std"], c=cmap(i_df*2),
+        axs[0].errorbar(bin_centers, df_pos[f"{var_pos}_std"], yerr=df_pos[f"{var_pos}_std_unc"], c=cmap(i_df*2),
                         xerr=bin_widths, fmt='p') # label=f"{label}, {labels_df[0]}")
-        axs[0].errorbar(bin_centers, df_neg[f"{var_neg}_std"], c=cmap(i_df*2+1),
+        axs[0].errorbar(bin_centers, df_neg[f"{var_neg}_std"], yerr=df_neg[f"{var_neg}_std_unc"], c=cmap(i_df*2+1),
                         xerr=bin_widths, fmt='p') # label=f"{label}, {labels_df[1]}")
     axs[0].set_xlabel(get_label(xaxis_col_name))
     detector = "TOF" if "Tof" in var_pos else "TPC"
@@ -226,8 +232,11 @@ def draw_ratio_sigma_pos_neg(dfs_pos, dfs_neg, xaxis_col_name, class_col_name, l
     axs[1].set_xticks(ticks)
     axs[1].set_xticklabels(ticks, rotation=45, ha='right')
     ratios = [np.array(df_pos[f"{var_pos}_std"]) / np.array(df_neg[f"{var_neg}_std"]) for df_pos, df_neg in zip(sort_dfs_pos, sort_dfs_neg)]
-    for i_ratio, ratio in enumerate(ratios):
-        axs[1].errorbar(bin_centers, ratio, c=cmap(i_ratio*2),
+    errs = [abs(ratio)*np.sqrt(
+        (np.array(df_pos[f"{var_pos}_std_unc"])/np.array(df_pos[f"{var_pos}_std"])) **2 +\
+            (np.array(df_neg[f"{var_neg}_std_unc"])/np.array(df_neg[f"{var_neg}_std"])) **2) for ratio, df_pos, df_neg in zip(ratios, sort_dfs_pos, sort_dfs_neg)]
+    for i_ratio, (ratio, unc) in enumerate(zip(ratios, errs)):
+        axs[1].errorbar(bin_centers, ratio, yerr=unc, c=cmap(i_ratio*2),
                         xerr=bin_widths, label=label, fmt='p')
     axs[1].set_xlabel(get_label(xaxis_col_name))
     axs[1].set_ylabel(f'{labels_df[0]}/{labels_df[1]}') 
@@ -261,9 +270,9 @@ def draw_ratio_mean_pos_neg(dfs_pos, dfs_neg, xaxis_col_name, class_col_name, la
         neg_marker = Line2D([0], [0], color=cmap(i_df * 2 + 1), marker='o', linestyle='None')
         legend_entries.append(((pos_marker, neg_marker), f'{label}, {labels_df[0][:3]}({labels_df[1][:3]})'))
         
-        axs[0].errorbar(bin_centers, df_pos[f"{var_pos}_mean"], c=cmap(i_df*2),
+        axs[0].errorbar(bin_centers, df_pos[f"{var_pos}_mean"], yerr=df_pos[f"{var_pos}_mean_unc"], c=cmap(i_df*2),
                         xerr=bin_widths, fmt='p') #, label=f"{label}, {labels_df[0]}")
-        axs[0].errorbar(bin_centers, df_neg[f"{var_neg}_mean"], c=cmap(i_df*2+1),
+        axs[0].errorbar(bin_centers, df_neg[f"{var_neg}_mean"], yerr=df_neg[f"{var_neg}_mean_unc"], c=cmap(i_df*2+1),
                         xerr=bin_widths, fmt='p') #, label=f"{label}, {labels_df[1]}")
     axs[0].set_xlabel(get_label(xaxis_col_name))
     detector = "TOF" if "Tof" in var_pos else "TPC"
@@ -280,8 +289,9 @@ def draw_ratio_mean_pos_neg(dfs_pos, dfs_neg, xaxis_col_name, class_col_name, la
     axs[1].set_xticks(ticks)
     axs[1].set_xticklabels(ticks, rotation=45, ha='right')
     diffs = [np.array(df_pos[f"{var_pos}_mean"]) - np.array(df_neg[f"{var_neg}_mean"]) for df_pos, df_neg in zip(sort_dfs_pos, sort_dfs_neg)]
-    for i_ratio, ratio in enumerate(diffs):
-        axs[1].errorbar(bin_centers, ratio, c=cmap(i_ratio*2),
+    errs = [np.sqrt(df_pos[f"{var_pos}_mean_unc"]**2 + df_neg[f"{var_neg}_mean_unc"]**2) for df_pos, df_neg in zip(sort_dfs_pos, sort_dfs_neg)]
+    for i_ratio, (ratio, unc) in enumerate(zip(diffs, errs)):
+        axs[1].errorbar(bin_centers, ratio, yerr=unc, c=cmap(i_ratio*2),
                         xerr=bin_widths, label=label, fmt='p')
     axs[1].set_xlabel(get_label(xaxis_col_name))
     axs[1].set_ylabel(f'{labels_df[0]} - {labels_df[1]}') 
@@ -397,8 +407,8 @@ def draw_plots(outdir, classes_var, xaxis_var, dfs_pos_pi_mc, dfs_pos_pi, dfs_ne
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Arguments')
     parser.add_argument('input_folder', help='Input folder')
-    parser.add_argument('--classes_var', default='fCentralityFT0C', help='Variable for classes')
-    parser.add_argument('--xaxis_var', default='fPt', help='Variable for dependency')
+    parser.add_argument('--classes_var', '-c', default='fCentralityFT0C', help='Variable for classes')
+    parser.add_argument('--xaxis_var', '-x', default='fPt', help='Variable for dependency')
     parser.add_argument('--query_var', default='', help='Variable for query')
     parser.add_argument('--query_int', default='', nargs='+', help='Interval to query')
     args = parser.parse_args()

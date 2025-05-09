@@ -20,14 +20,18 @@ def get_distribution_mean_sigma(df, var):
     df = df.query(f"abs({var}) < 15")
     if len(df) == 0:
         print(f"No dataframe entries left when cutting abs({var}) < 15")
-        return 0., 0.
+        return 0., 0., 0., 0.
     if "w_splot" in df.columns and sum(df['w_splot'])>0:
         mean = np.average(df[var], weights=df['w_splot'])
-        sigma = np.sqrt(np.average((df[var] - mean)**2, weights=df['w_splot']))
+        sigma = np.sqrt(np.average((df[var] - mean)**2, weights=df['w_splot']) * len(df) / (len(df) - 1))
+        mean_unc = sigma / np.sqrt(len(df))
+        sigma_unc = sigma / np.sqrt(2 * (len(df) - 1))
     else:
         mean = np.average(df[var])
         sigma = df[var].std()
-    return mean, sigma
+        mean_unc = sigma / np.sqrt(len(df))
+        sigma_unc = sigma / np.sqrt(2 * (len(df) - 1))
+    return mean, mean_unc, sigma, sigma_unc
 
 def fit_mass(df, suffix, pt_min, pt_max, sel, cfg, sub_dir, sel_vars):
     # Create the data handler
@@ -92,7 +96,7 @@ def fit_mass(df, suffix, pt_min, pt_max, sel, cfg, sub_dir, sel_vars):
         style="ATLAS",
         show_extra_info = fitter._name_background_pdf_[0] != "nobkg" and fitter.get_background()[1] != 0,
         figsize=(8, 8), extra_info_loc=loc,
-        axis_title=ax_title,
+        axis_title=ax_title
     )
 
     output_dir = os.path.join(cfg['output']['dir'], f'{sub_dir}/{pt_min*10:.0f}_{pt_max*10:.0f}')
@@ -113,8 +117,8 @@ def draw_pid_distributions(dfs, cfg, labels, pt_min, pt_max, sub_dir):
     for var in cfg['variables_to_plot']:
         fig, ax = plt.subplots(1, 1, figsize=(12, 10))
         for df, label in zip(dfs, labels):
-            weight = df['w_splot'] if "w_splot" in df.columns else [1]*len(df)
-            df[var].hist(bins=300, label=label, weights=weight, alpha=0.5, density=True, range=(-15,15))
+            weight = df['w_splot'] if "w_splot" in df.columns else None
+            df[var].hist(bins=100, label=label, weights=weight, alpha=0.5, density=True, range=(-15,15))
         ax.set_xlabel(var)
         ax.set_ylabel('Entries')
         ax.legend()
@@ -173,9 +177,11 @@ def run_pt_bin(pt_min, pt_max, cfg, out_daudir, dau_axis_pt, selection, data_df,
     eff_df_row = [*eff_df_sel_row] + [f"[{pt_min}, {pt_max})"]
     eff_df_mc_row = [*eff_df_sel_row] + [f"[{pt_min}, {pt_max})"]
 
-    _, sgn_sweights = fit_mass(df_data_pt, 'data', pt_min, pt_max, sel, cfg, out_daudir, sel_var)
+    if cfg.get('bkg_func', None) is not None:
+        _, sgn_sweights = fit_mass(df_data_pt, 'data', pt_min, pt_max, sel, cfg, out_daudir, sel_var)
+    else:
+        sgn_sweights = None
 
-    df_data_pt = df_data_pt.copy()
     if sgn_sweights is not None:
         df_data_pt.loc[:, 'w_splot'] = sgn_sweights
     
@@ -190,10 +196,10 @@ def run_pt_bin(pt_min, pt_max, cfg, out_daudir, dau_axis_pt, selection, data_df,
 
     draw_pid_distributions([df_data_pt, df_mc_pt], cfg, ['data', 'mc'], pt_min, pt_max, out_daudir)
     for var in cfg['variables_to_plot']:
-        mean_data, sigma_data = get_distribution_mean_sigma(df_data_pt, var)
-        mean_mc, sigma_mc = get_distribution_mean_sigma(df_mc_pt, var)
-        eff_df_row = eff_df_row + [mean_data, sigma_data]
-        eff_df_mc_row = eff_df_mc_row + [mean_mc, sigma_mc]
+        mean_data, mean_unc_data, sigma_data, sigma_unc_data = get_distribution_mean_sigma(df_data_pt, var)
+        mean_mc, mean_unc_mc, sigma_mc, sigma_unc_mc = get_distribution_mean_sigma(df_mc_pt, var)
+        eff_df_row = eff_df_row + [mean_data, mean_unc_data, sigma_data, sigma_unc_data]
+        eff_df_mc_row = eff_df_mc_row + [mean_mc, mean_unc_mc, sigma_mc, sigma_unc_mc]
 
     return eff_df_row, eff_df_mc_row
 
@@ -212,7 +218,9 @@ def draw_distributions(cfg_file_name):
             ) for item in pair
     ] + [ item for pair in zip(
             [f"{var}_mean" for var in cfg["variables_to_plot"]],
-            [f"{var}_std" for var in cfg["variables_to_plot"]]  
+            [f"{var}_mean_unc" for var in cfg["variables_to_plot"]],
+            [f"{var}_std" for var in cfg["variables_to_plot"]],
+            [f"{var}_std_unc" for var in cfg["variables_to_plot"]]
             ) for item in pair
     ]
 
