@@ -177,7 +177,7 @@ def run_pt_bin(pt_min, pt_max, cfg, out_daudir, dau_axis_pt, selection, data_df,
     eff_df_row = [*eff_df_sel_row] + [f"[{pt_min}, {pt_max})"]
     eff_df_mc_row = [*eff_df_sel_row] + [f"[{pt_min}, {pt_max})"]
 
-    if cfg.get('bkg_func', None) is not None:
+    if cfg['fit_config'].get('bkg_func', 'nobkg') != 'nobkg': 
         _, sgn_sweights = fit_mass(df_data_pt, 'data', pt_min, pt_max, sel, cfg, out_daudir, sel_var)
     else:
         sgn_sweights = None
