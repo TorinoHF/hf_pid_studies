@@ -418,7 +418,12 @@ if __name__ == '__main__':
     df_neg_pi = pd.read_parquet(f"{args.input_folder}/neg_pi_eff_df.parquet", engine="pyarrow") 
     df_pos_pi = pd.read_parquet(f"{args.input_folder}/pos_pi_eff_df.parquet", engine="pyarrow")
 
-    interval_cols = [args.classes_var, args.xaxis_var]
+    classes_vars = ['fCentralityFT0C', 'fOccupancyFt0c', 'fOccupancyFT0C']
+    classes_var = args.classes_var
+    if classes_var not in list(df_neg_pi_mc.columns) and classes_var in classes_vars:
+        classes_var = [name for name in classes_vars if name in df_neg_pi_mc.columns][0]
+
+    interval_cols = [classes_var, args.xaxis_var]
     if args.query_var != '':
         interval_cols.append(args.query_var)
 
@@ -438,15 +443,15 @@ if __name__ == '__main__':
         df_neg_pi = df_neg_pi.query(query).reset_index(drop=True) 
         df_pos_pi = df_pos_pi.query(query).reset_index(drop=True)
 
-    bins = sorted(df_pos_pi_mc[args.classes_var].dropna().unique(), key=lambda x: x.left)
+    bins = sorted(df_pos_pi_mc[classes_var].dropna().unique(), key=lambda x: x.left)
     bin_edges = [interval.left for interval in bins]
     bin_edges.append(bins[-1].right)
     labels = [f'{min}_{max}' for min, max in zip(bin_edges[:-1], bin_edges[1:])]
 
-    dfs_pos_pi_mc = [df_pos_pi_mc.query(f'{args.classes_var} == @pd.Interval({min}, {max}, closed="left")').reset_index(drop=True) for min, max in zip(bin_edges[:-1], bin_edges[1:])]
-    dfs_pos_pi = [df_pos_pi.query(f'{args.classes_var} == @pd.Interval({min}, {max}, closed="left")').reset_index(drop=True) for min, max in zip(bin_edges[:-1], bin_edges[1:])]
-    dfs_neg_pi_mc = [df_neg_pi_mc.query(f'{args.classes_var} == @pd.Interval({min}, {max}, closed="left")').reset_index(drop=True) for min, max in zip(bin_edges[:-1], bin_edges[1:])]
-    dfs_neg_pi = [df_neg_pi.query(f'{args.classes_var} == @pd.Interval({min}, {max}, closed="left")').reset_index(drop=True) for min, max in zip(bin_edges[:-1], bin_edges[1:])]
+    dfs_pos_pi_mc = [df_pos_pi_mc.query(f'{classes_var} == @pd.Interval({min}, {max}, closed="left")').reset_index(drop=True) for min, max in zip(bin_edges[:-1], bin_edges[1:])]
+    dfs_pos_pi = [df_pos_pi.query(f'{classes_var} == @pd.Interval({min}, {max}, closed="left")').reset_index(drop=True) for min, max in zip(bin_edges[:-1], bin_edges[1:])]
+    dfs_neg_pi_mc = [df_neg_pi_mc.query(f'{classes_var} == @pd.Interval({min}, {max}, closed="left")').reset_index(drop=True) for min, max in zip(bin_edges[:-1], bin_edges[1:])]
+    dfs_neg_pi = [df_neg_pi.query(f'{classes_var} == @pd.Interval({min}, {max}, closed="left")').reset_index(drop=True) for min, max in zip(bin_edges[:-1], bin_edges[1:])]
 
-    outdir = f"{args.input_folder}/figures_{args.classes_var}_xaxis_{args.xaxis_var}{query_str}/"
-    draw_plots(outdir, args.classes_var, args.xaxis_var, dfs_pos_pi_mc, dfs_pos_pi, dfs_neg_pi_mc, dfs_neg_pi)
+    outdir = f"{args.input_folder}/figures_{classes_var}_xaxis_{args.xaxis_var}{query_str}/"
+    draw_plots(outdir, classes_var, args.xaxis_var, dfs_pos_pi_mc, dfs_pos_pi, dfs_neg_pi_mc, dfs_neg_pi)
