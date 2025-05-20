@@ -418,7 +418,7 @@ if __name__ == '__main__':
     df_neg_pi = pd.read_parquet(f"{args.input_folder}/neg_pi_eff_df.parquet", engine="pyarrow") 
     df_pos_pi = pd.read_parquet(f"{args.input_folder}/pos_pi_eff_df.parquet", engine="pyarrow")
 
-    classes_vars = ['fCentralityFT0C', 'fOccupancyFt0c', 'fOccupancyFT0C']
+    classes_vars = ['fCentralityFT0C', 'fCentralityFT0M', 'fOccupancyFt0c', 'fOccupancyFT0C']
     classes_var = args.classes_var
     if classes_var not in list(df_neg_pi_mc.columns) and classes_var in classes_vars:
         classes_var = [name for name in classes_vars if name in df_neg_pi_mc.columns][0]
