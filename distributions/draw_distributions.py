@@ -157,7 +157,8 @@ def get_selections(cfg):
     selection_vars = []
     selection_vars_ranges = []
     if cfg.get('cent_bins'):
-        selection_vars.append("fCentralityFT0C")
+        detector = cfg.get('cent_detector', 'FT0C')
+        selection_vars.append(f"fCentrality{detector}")
         selection_vars_ranges.append(cfg["cent_bins"])
     if cfg.get('occ_bins'):
         selection_vars.append("fOccupancyFt0c")

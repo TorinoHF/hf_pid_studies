@@ -1,0 +1,29 @@
+inputs:
+  data: /home/fchinu/Run3/pid_studies/datasets/pp/skimmed/data/AO2D_LHC22o_pass7_medium_k0s.parquet
+  mc: /home/fchinu/Run3/pid_studies/datasets/pp/skimmed/mc/Tree_LHC24g5_K0s_k0s.parquet
+mother_mass_var_name: fMassK0
+mother_pt_var_name: fPt
+variables_to_plot: [fNSigmaTpcPosPi, fNSigmaTpcNegPi, fNSigmaTofPosPi, fNSigmaTofNegPi]
+dau_names: [pos_pi, neg_pi]
+dau_pt_var_names: [fPtPos, fPtNeg] # relative to the variables_to_plot
+mass_range: [0.45, 0.55]
+fit_config:
+  bkg_func: nobkg
+  mean: 0.5
+  sigma: 0.01
+  nl: 4
+  nr: 5
+  alphal: 3
+  alphar: 3
+max_workers: 20
+cent_detector: FT0M # FT0C or FT0M
+pt_bins: [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.5, 2.0, 4.0]
+cent_bins: [ 
+        [0, 10], 
+        [10, 30], 
+        [30, 50],
+        [50, 70],
+        [70, 100],
+          ]
+output:
+  dir: distributions/k0s/pp/22o_pass7_medium_LHC24g5_vs_mult
